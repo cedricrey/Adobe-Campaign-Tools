@@ -1,0 +1,70 @@
+{
+  "directories": {
+    "gitRoot": "C:\\Users\\myname\\mygitproject\\\\src",
+    "backupSubDirectoryName": "ENV"
+  },
+  "lastSyncDate": "2020-10-20T09:05:38.405Z",
+  "env": [
+    "DEV",
+    "PROD"
+  ],
+  "elementToSync": {
+    "workflowModels": {
+      "modificationDateField": "@lastModified",
+      "schema" : "xtk:workflow",
+      "directory" : "workflowModel",
+      "conditions": [
+        "<condition expr='@isModel = 1'/>"
+      ]
+    },
+    "startedWorkflow": {
+      "modificationDateField": "@lastModified",
+      "schema" : "xtk:workflow",
+      "directory" : "workflow",
+      "conditions": [
+        "<condition expr='@isModel = 0'/>",
+        "<condition expr='@state = 11'/>",
+        "<condition expr=\"[folder/@fullName] NOT LIKE '/forbbiden/' + '%'\"/>"
+      ],
+      "extraQuerySelector": "<node expr=\"[modifiedBy/@name]\"/><node expr=\"[createdBy/@name]\"/>",
+      "excludeEnv": [
+        "PROD"
+      ]
+    },
+    "nms:delivery": {
+      "modificationDateField": "@lastModified",
+      "schema" : "nms:delivery",
+      "conditions": [
+        "<condition expr='@isModel = 1'/>"
+      ],
+      "extraQuerySelector": "<node expr=\"[modifiedBy/@name]\"/><node expr=\"[createdBy/@name]\"/>"
+    },
+    "xtk:form": {
+      "modificationDateField": "@lastModified",
+      "schema" : "xtk:form",
+      "extraQuerySelector": "<node expr=\"[modifiedBy/@name]\"/><node expr=\"[createdBy/@name]\"/>"
+    },
+    "xtk:srcSchema": {
+      "modificationDateField": "@lastModified",
+      "schema" : "xtk:srcSchema",
+      "extraQuerySelector": "<node expr=\"[modifiedBy/@name]\"/><node expr=\"[createdBy/@name]\"/>"
+    },
+    "xtk:javascript": {
+      "modificationDateField": "@lastModified",
+      "schema" : "xtk:javascript"
+    },
+    "xtk:jssp": {
+      "modificationDateField": "@lastModified",
+      "schema" : "xtk:jssp"
+    },
+    "xtk:jst": {
+      "modificationDateField": "@lastModified",
+      "schema" : "xtk:jst"
+    },
+    "nms:webApp": {
+      "modificationDateField": "@lastModified",
+      "schema" : "nms:webApp",
+      "extraQuerySelector": "<node expr=\"[modifiedBy/@name]\"/><node expr=\"[createdBy/@name]\"/>"
+    }
+  }
+}

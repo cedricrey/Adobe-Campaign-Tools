@@ -1,0 +1,32 @@
+{
+  "author": "Cédric Rey",
+  "name": "@cedricrey/ac-gitBackup",
+  "version": "0.0.1",
+  "description": "Adobe Campaign Classic Backup with GIT",
+  "main": "ac-gitBackup.js",
+  "keywords": [
+    "Adobe Campaign",
+    "Neolane",
+    "Git"
+  ],
+  "directories": {
+    "utils": "./utils/*",
+    "conf": "./conf"
+  },
+  "engines": {
+    "node": ">=10.0"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "ac-connector": "latest",
+    "ac-sync": "latest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cedricrey/ac-gitBackup.git"
+  },
+  "bin": {
+    "ACGbackup": "bin/ac-gitBackup",
+    "ac-gitBackup": "bin/ac-gitBackup"
+  }
+}
