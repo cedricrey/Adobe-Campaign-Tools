@@ -1,6 +1,6 @@
 
 Function I've found into builtin forms (@expr of @visible
- or other attribute of <if>, <case>, <container> etc.)
+ or other attribute of if, case, container, set elements etc.)
 
 - AddDays
 - AddOfferViewToBLogSchema
