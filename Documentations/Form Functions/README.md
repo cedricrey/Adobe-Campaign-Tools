@@ -1,6 +1,6 @@
 
-Function I've found into builtin forms (@expr of @visible
- or other attribute of if, case, container, set elements etc.)
+Function I've found into builtin forms (@expr of @visibleIf
+ or other attribute of if, case, container, set, input elements etc.)
 
 - AddDays
 - AddOfferViewToBLogSchema
