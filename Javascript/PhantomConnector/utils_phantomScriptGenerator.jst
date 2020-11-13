@@ -1,0 +1,67 @@
+var webPage = require('webpage');
+var fs = require('fs');
+var page = webPage.create();
+<%
+var pageViewWidth = config.viewPort.@width ? config.viewPort.@width : 1920;
+var pageViewHeight = config.viewPort.@height ? config.viewPort.@height : 1000;
+%>page.viewportSize = {
+    width:<%=pageViewWidth%>,
+    height: <%=pageViewHeight%>
+};
+<%
+
+
+if( config.embededJSLib )
+{
+    %><%= config.embededJSLib %>
+    <%
+}
+
+if( config.initScript )
+{
+    %><%= config.initScript %>
+    <%
+}
+
+if( config.@pageURL )
+{
+%>page.open('<%=config.@pageURL%>', onPageLoaded);
+<%
+}
+else if( config.pageHTML )
+{
+%>page.setContent(<%=config.pageHTML%>, "http://Localhost/");
+onPageLoaded('success');
+<%
+}
+else if( config.onPageLoadedScript ){
+  %><%= config.onPageLoadedScript %>
+  phantom.exit();
+  <%
+}
+
+%>
+function onPageLoaded( status ){
+  <%
+  if( config.onPageLoadedScript )
+  {
+      %><%= config.onPageLoadedScript %>
+      <%
+  }
+  if( config.autoExit )
+  {
+      %>
+      phantom.exit();
+      <%
+  }
+  %>
+}
+
+//Helpers functions
+function getElementById( id ){
+    return document.getElementById( id );
+}
+
+function selector( selection ){
+    return document.querySelector( selection );
+}
