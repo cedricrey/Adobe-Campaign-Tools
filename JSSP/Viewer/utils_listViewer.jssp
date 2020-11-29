@@ -1,0 +1,332 @@
+<%@ page import="xtk:server/jsspcontext.js" 
+%><%@ page import="xtk:common.js"
+%><%@ page import="/nl/core/shared/nl.js" 
+%><%
+  var jsspContext = new JSSPContext(request)
+  if( !jsspContext.checkAuthentication(response))
+    return;
+  response.setContentType("text/html;charset=utf-8");  
+
+  var schema = "";
+  if( request.getParameter('schema') != "")
+    schema = request.getParameter('schema');
+  var selectField = null;
+  if( request.getParameter('selectField') != "")
+    selectField = request.getParameter('selectField').split(",");
+  
+  
+  var schemaObj = application.getSchema( schema );
+
+  function setElementDetails( element, details ){
+    for each(var node in element.children)
+      {
+       
+        if(selectField 
+          && selectField.indexOf(node.nodePath) == -1 
+          && selectField.indexOf(node.nodePath.replace(/^\//,"")) == -1 
+          && node.nodePath != '/@id')
+          continue;
+        var path = node.nodePath.replace(/^\//gm,'');
+        if(node.isElementOnly)
+          setElementDetails( node, details )
+        else if(!node.isLink && !node.isFeature && !node.isAdvanced && node.isSQL)
+          {
+            details.push({
+              path : path.indexOf('/') > 1 || path.indexOf('-') > 1 ? '[' + path + ']' : path ,
+              label : node.label,
+              name : path.replace(/@/g,'').replace(/-/g,'').replace(/\//g,'_'),
+              type : node.type,
+              enum : node.enumeration 
+            }
+          );
+          }
+      }
+  }
+
+  var schemaDetails = [];
+  setElementDetails( schemaObj.root , schemaDetails );
+
+  
+%>
+<!DOCTYPE html>
+<html lang="en">
+    <style>
+        body{
+            font-family:Verdana, Arial;
+        }
+        table{
+            border:1px solid #999;
+            border-collapse: collapse;
+        }
+        table td{
+            padding:20px;
+            border-bottom:1px solid #999;
+        }
+    </style>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script
+      crossorigin
+      src="https://unpkg.com/react@16/umd/react.development.js"
+      defer
+    ></script>
+    <script
+      crossorigin
+      src="https://unpkg.com/react-dom@16/umd/react-dom.development.js"
+      defer
+    ></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js" defer></script>
+    <script type="text/javascript" src="/xtk/js/common.js"></script>
+    <script type="text/javascript" src="/xtk/js/client/list.js"></script>
+    <script type="text/javascript" src="/xtk/js/core.js"></script>
+    <script type="text/javascript" src="/xtk/js/client/xml.js"></script>
+    <script type="text/javascript" src="/xtk/js/client/soap.js"></script>
+    <script type="text/javascript" src="/xtk/js/client/querydef.js"></script>
+    <script type="text/babel" defer>
+      
+      var serverUrl = window.location.protocol + "//" + window.location.host;
+      var sessionToken = "<%= jsspContext.getSessionToken() %>";
+
+    
+      class FilterForm  extends React.Component  {
+        constructor(props) {
+          super(props);
+          this.state = {
+            <%for each(var field in schemaDetails){
+              if(field.type == "datetime"){
+              %><%=field.name%>_before : '',<%=field.name%>_after : '', <%
+              }
+              else{
+              %><%=field.name%> : '',
+              <%}
+            }%>
+            prenom : '', nom : '', lineCount : 30, label : ''
+            };
+          this.handleChange = this.handleChange.bind(this);
+          this.handleSubmit = this.handleSubmit.bind(this);
+          this.handleFilter = props.handleFilter;
+        }
+
+        handleChange(event) {
+          const target = event.target;
+          const name = target.name;
+          const value = target.type === 'checkbox' ? target.checked : target.value;
+          //alert('Modif : ' + name);
+          this.setState({[name]: value}, ()=>{
+            this.handleFilter( this.state );
+          });
+          
+        }
+        handleSubmit(event) {
+          //alert('Soumi : ' + JSON.stringify(this.state) );
+          //loadEvents( this.state )
+          event.preventDefault();
+        }
+
+          render() {
+              return <form onSubmit={this.handleSubmit}>
+                      <%for each(var field in schemaDetails){
+                        %>
+                      <div className="formField">
+                        <label><%=field.label%></label>
+                        <%if( field.enum ){%>
+                          <select name="<%=field.name%>" value={this.state.<%=field.name%>} onChange={this.handleChange}>
+                            <option value="">Tous</option>
+                            <% for each(value in field.enum.values){%>
+                            <option value="<%=value.value%>"><%=value.label%></option>
+                            <%}%>
+                          </select>
+                        <%} else if( field.type == "datetime") {%>
+                        Après le <input type="date" value={this.state.<%=field.name%>_after} onChange={this.handleChange} name="<%=field.name%>_after" placeholder="<%=field.label%>"/>
+                        Avant le <input type="date" value={this.state.<%=field.name%>_before} onChange={this.handleChange} name="<%=field.name%>_before" placeholder="<%=field.label%>"/>
+                        <%} else if( field.type == "boolean") {%>                        
+                          <select name="<%=field.name%>" value={this.state.<%=field.name%>} onChange={this.handleChange}>
+                            <option value="">Tous</option>
+                            <option value="true">Oui</option>
+                            <option value="false">Non</option>
+                          </select>
+                        <%} else {%>
+                        <input type="text" value={this.state.<%=field.name%>} onChange={this.handleChange} name="<%=field.name%>" placeholder="<%=field.label%>"/>
+                        <%}%>
+                      </div>
+                        <%
+                      }%>
+                      <%/*
+                      <div className="formField">
+                        <label>Nom</label><input type="text" value={this.state.nom} onChange={this.handleChange} name="nom" placeholder="Nom d'abonné"/>
+                      </div>
+                      <div className="formField">
+                        <label>Label</label><input type="text" value={this.state.label} onChange={this.handleChange} name="label" placeholder="Label"/>
+                      </div>
+                      <div className="formField">
+                        <label>Enum</label>
+                        <select name="canal" value={this.state.enum} onChange={this.handleChange}>
+                          <option value="">Tous</option>
+                          <option value="value1">value1</option>
+                          <option value="value2">value2</option>  
+                        </select>
+                      </div>
+                      */%>
+                      <div className="formField">
+                        <label>Nombre de lignes</label><input type="number" value={this.state.lineCount} onChange={this.handleChange} name="lineCount" placeholder=""/>
+                      </div>
+                    </form>;
+              }
+      }      
+      
+      class ElementsBoard extends React.Component{
+        constructor() {
+          super();
+          this.state = {
+            name: "ElementsBoard",
+            elements : null,
+            filter : {}
+          };
+          this.loadElements = this.loadElements.bind(this);
+          //this.form = new FilterForm();
+          this.loadElements();
+        }
+        handleFilter( filter ){
+          console.log( "FILTER : ", filter );
+          this.setState({ filter : filter },
+            ()=>{
+              this.loadElements();
+            }
+          );
+        }
+        loadElements( ) {
+          var query = new QueryDef('<%=schema%>','select');
+          query.setLineCount(this.state.filter.lineCount || 30);
+          /*query.addSelectExpr('@id');
+          query.addSelectExpr('@firstName');
+          */
+          <%for each(var field in schemaDetails){
+              %>query.addSelectExpr('<%=field.path%>','<%=field.name%>',true);
+              <%
+          }%>
+          const filter = this.state.filter;
+          if( filter )
+          {
+            console.log( filter );
+            <%for each(var field in schemaDetails){
+              if(field.type == 'datetime'){
+                %>if( filter.<%=field.name%>_before && filter.<%=field.name%>_before != "" )
+              query.addWhereConditionExpr(`<%=field.path%> < #${filter.<%=field.name%>_before}#`);
+                if( filter.<%=field.name%>_after && filter.<%=field.name%>_after != "" )
+              query.addWhereConditionExpr(`<%=field.path%> > #${filter.<%=field.name%>_after}#`);
+                <%
+                }
+              else if(field.type == 'boolean'){
+                %>if( filter.<%=field.name%> && filter.<%=field.name%> != '')
+              query.addWhereConditionExpr(`<%=field.path%> = ${filter.<%=field.name%> == "false" ? 'false' : 'true'}`);
+                <%
+                }
+              else {
+                %>if( filter.<%=field.name%> && filter.<%=field.name%> != "" )
+              query.addWhereConditionExpr(`<%=field.path%> = '${filter.<%=field.name%>}'`);
+                <%
+              }
+            }%>
+            /*
+            if( filter.prenom && filter.prenom != "" )
+              query.addWhereConditionExpr(`@firstName = '${filter.prenom}'`);
+            if( filter.nom && filter.nom != "" )
+              query.addWhereConditionExpr(`@nom LIKE '${filter.nom}%'`);
+            if( filter.label && filter.label != "" )
+              query.addWhereConditionExpr(`@label = '${filter.label}'`);
+              */
+          }
+         // query.addOrderByExpr(`@created`, true);
+
+          query.execute( serverUrl + '/nl/jsp/soaprouter.jsp', sessionToken, {
+            onXtkQueryCompleted : function(queryDef, xmlResult, ex){
+              console.log(ex)
+              if(xmlResult && xmlResult.childNodes && xmlResult.childNodes.length > 0)
+              {
+                //this.state.events = xmlResult.childNodes;
+                //console.log('Hey : ', xmlResult )
+                this.setState({
+                  elements : xmlResult.childNodes
+                })
+              }
+              else
+                this.setState({
+                    elements : []
+                  })
+            }.bind(this)
+
+          } );   
+        }
+        render(){
+          const elementsTable = [];
+          if( this.state.elements && this.state.elements.length > 0)
+          {
+            this.state.elements.forEach((element) => {
+                //console.log(element)
+                var fieldElement = {}
+                element.childNodes.forEach((node)=>{fieldElement[node.nodeName] = node})
+                elementsTable.push(<tr key={fieldElement.id.textContent}>
+                  <%for each(var field in schemaDetails){
+                %><td>{fieldElement.<%=field.name%>Label ? fieldElement.<%=field.name%>Label.textContent : fieldElement.<%=field.name%> ? fieldElement.<%=field.name%>.textContent : ""}</td>
+                <%
+              }%>
+              </tr>);
+              });
+
+          //console.log(this.form)
+            return <div>
+              <FilterForm handleFilter={this.handleFilter.bind(this)}/>
+              <table><thead><tr>
+              <%for each(var field in schemaDetails){
+                %><th><%=field.label%></th>
+                <%
+              }%>
+              </tr></thead>
+              <tbody>{elementsTable}</tbody></table></div>;
+          }
+          else
+            return <div>
+                <FilterForm handleFilter={this.handleFilter.bind(this)}/>
+                <div style={{"textAlign":"center"}}><h2>Pas de résultat à afficher</h2></div>
+              </div>;
+        }
+      }
+
+
+      ReactDOM.render(
+        <ElementsBoard/>,
+        document.querySelector("#app")
+      );
+      
+    </script>
+    <style>
+      form{
+        margin-bottom: 2rem;
+        display: flex;
+        width: 100%;
+        flex-wrap: wrap;
+      }
+      form .formField {
+        flex:1 1 1 1 1;
+      }
+      form label{
+        padding:0 2em;
+      }
+      .STATU_OK{
+        background-color: #EFE;
+      }
+      .STATU_KO{
+        background-color: #FEE;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Visualisation des <%=schemaObj.label%></h1>
+    <!--<textarea> <%== JSON.stringify( schemaDetails , null, 3)%></textarea>-->
+
+
+    <div id="app"></div>
+  </body>
+</html>
