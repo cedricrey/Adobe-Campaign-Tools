@@ -20,6 +20,7 @@ var PhantomConnector = function( arguments ){
     autoExit : arguments.handleExit ? false : true,
     viewPort : arguments.viewPort || {}
   }
+
 }
 
 PhantomConnector.globals = {
@@ -39,11 +40,15 @@ PhantomConnector.prototype.run = function( ){
   PhantomConnector.writeFile( this.executionScriptFileName , executionScript );
   //logInfo("Script File is : " + this.executionScriptFileName);
   //return
-  var result = execCommand('phantomjs ' + this.executionScriptFileName );
+  var result = execCommand('phantomjs --ssl-protocol=any --ignore-ssl-errors=yes ' + this.executionScriptFileName, true );
+
   if( result[0] == 0 )
     return result[1];
   else
-    throw result[1];
+    {
+      logError( "[PhantomConnector] " + result[1] )
+      throw result[1];
+    }
 }
 
 PhantomConnector.prototype.generateExecutionScript = function(  ){

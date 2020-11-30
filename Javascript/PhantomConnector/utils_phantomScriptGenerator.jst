@@ -13,19 +13,34 @@ var pageViewHeight = config.viewPort.@height ? config.viewPort.@height : 1000;
 
 if( config.embededJSLib )
 {
-    %><%= config.embededJSLib %>
+    %>
+    try{
+    <%= config.embededJSLib %>
+    }
+    catch( e ){
+      console.log("embededJSLib script - " + e);
+      phantom.exit(1);
+    }
     <%
 }
 
 if( config.initScript )
 {
-    %><%= config.initScript %>
+    %>
+    try{
+    <%= config.initScript %>
+    }
+    catch( e ){
+      console.log("init script - " + e);
+      phantom.exit(1);
+    }
     <%
 }
 
 if( config.@pageURL )
 {
 %>page.open('<%=config.@pageURL%>', onPageLoaded);
+page.onError = onError;
 <%
 }
 else if( config.pageHTML )
@@ -35,7 +50,14 @@ onPageLoaded('success');
 <%
 }
 else if( config.onPageLoadedScript ){
-  %><%= config.onPageLoadedScript %>
+  %>
+  try{
+  <%= config.onPageLoadedScript %>
+  }
+  catch( e ){
+    console.log("onPageLoaded script - " + e);
+    phantom.exit(1);
+  }
   phantom.exit();
   <%
 }
@@ -45,10 +67,19 @@ function onPageLoaded( status ){
   <%
   if( config.onPageLoadedScript )
   {
-      %><%= config.onPageLoadedScript %>
+      %>
+      try{
+      <%= config.onPageLoadedScript %>
+      }
+      catch( e ){
+        console.log("onPageLoaded script - " + e);
+        phantom.exit(1);
+        return;
+      }
       <%
   }
-  if( config.autoExit )
+  //Fucking XML node....
+  if( config.@autoExit.toString() == "true" )
   {
       %>
       phantom.exit();
@@ -56,7 +87,9 @@ function onPageLoaded( status ){
   }
   %>
 }
-
+function onError(msg, trace){
+  //console.log(msg, trace);
+}
 //Helpers functions
 function getElementById( id ){
     return document.getElementById( id );
