@@ -12,7 +12,7 @@
     schema = request.getParameter('schema');
   var selectField = "";
   if( request.getParameter('selectField') != "")
-    selectField = request.getParameter('selectField').split(",");
+    selectField = request.getParameter('selectField');
 
   var sessionToken = jsspContext.getSessionToken();
   %>
