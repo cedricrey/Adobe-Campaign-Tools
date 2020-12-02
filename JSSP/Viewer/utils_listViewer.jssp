@@ -17,22 +17,471 @@
   var sessionToken = jsspContext.getSessionToken();
   %>
   
-  <%
- var jst = xtk.jst.load("utils:listViewerBuilder");
-  var template = jst.code;
+  
+  <%  
+  var schemaObj = application.getSchema( schema );
 
-  //logInfo('this.scriptConfig :' , JSON.stringify(this.scriptConfig))
-  var result = xtk.builder.EvaluateJavaScriptTemplate(
-    "",
-    template,
-    { 
-      config : {
-        schema : schema,
-        selectField : selectField,
-        sessionToken : sessionToken,
-        liveMode : true
+  function setElementDetails( element, details ){
+    for each(var node in element.children)
+      {
+       
+        if(selectField 
+          && selectField.indexOf(node.nodePath) == -1 
+          && selectField.indexOf(node.nodePath.replace(/^\//,"")) == -1 
+          && node.nodePath != '/@id')
+          continue;
+        var path = node.nodePath.replace(/^\//gm,'');
+        if(node.isElementOnly)
+          setElementDetails( node, details )
+        else if(!node.isLink && !node.isFeature && !node.isAdvanced && node.isSQL)
+          {
+            details.push({
+              path : path.indexOf('/') > 1 || path.indexOf('-') > 1 ? '[' + path + ']' : path ,
+              label : node.label,
+              name : path.replace(/@/g,'').replace(/-/g,'').replace(/\//g,'_'),
+              type : node.type,
+              enum : node.enumeration 
+            }
+          );
+          }
+      }
+  }
+
+  var schemaDetails = [];
+  setElementDetails( schemaObj.root , schemaDetails );
+
+  var schemaKey = "", schemaKeyArr = [];
+  for each(var key in schemaObj.root.keys)
+    if(key.isInternal)
+    for each(var field in key.fields)
+      {
+        var path = field.nodePath.replace(/^\//gm,'');
+        path = path.indexOf('/') > 1 || path.indexOf('-') > 1 ? '[' + path + ']' : path;
+        schemaKeyArr.push(path)
+      }
+  schemaKey = schemaKeyArr.join(' + ');
+  
+  //Some (but not all) operator label variabilisation
+  //Sorry, but couldn't find the operator used in the console (must be only built in the console), nether in the String Groups or schemas
+  //If needed, those label can be modified
+  var operatorLabel = {
+    "eq" : "égal à",
+    "greaterThan" : "supérieur à",
+    "lessThan" : "inférieur à",
+    "different" : "différent de",
+    "empty" : "est vide",
+    "notEmpty" : "n'est pas vide",
+    "startWith" : "commence par",
+    "startNot" : "ne commence pas par",
+    "contains" : "contient",
+    "in" : "compris dans",
+    "notIn" : "n'est pas compris dans"
+  }
+  var abstractFormSchema = application.getSchema('xtk:abstractForm')
+  for each( var enum in abstractFormSchema.enumerations )
+    {
+      if( enum.name === "xtk:abstractForm:xtkOperator")
+        {
+          for each( var val in enum.values )
+            operatorLabel[ val.name ] = val.label;
         }
     }
-  );
-  %>
-  <%==result[1]%>
+
+  var themeColors = {
+    bg1 : '#222423',
+    bg2 : '#EEE',
+    fg1 : 'rgb(247, 212, 17)',
+    fg2 : 'rgb(157, 134, 8)',
+  }
+  var themeColors2 = {
+    bg1 : '#141259',
+    bg2 : '#EEE',
+    fg1 : '#F2B705',
+    fg2 : 'rgb(157, 134, 8)',
+  }
+  var tc = themeColors2;
+%>
+<!DOCTYPE html>
+<html lang="en">
+    <style>
+        body{
+            font-family:Verdana, Arial;
+            font-size: 12px;
+        }
+        table{
+            border:1px solid #999;
+            border-collapse: collapse;
+        }
+        table td{
+            padding:20px;
+            border-bottom:1px solid <%=tc.fg1%>;
+        }
+        table tr:nth-child(odd) td{
+          background-color: <%=tc.bg2%>;
+          color: <%=tc.fg2%>;
+        }
+        form{
+          margin-bottom: 2rem;
+          display: flex;
+          width: 100%;
+          flex-wrap: wrap;
+        }
+        form .formField {
+          flex:1 0 30%;
+          text-align:center;
+          margin:1em 0;
+        }
+        form label{
+          display:block;
+          margin:2px 20px ;
+          padding:0 2em;
+          background-color: <%=tc.bg1%>;
+          border-radius:3px;
+          border:1px solid #DDD;
+          color: <%=tc.fg1%>;
+          font-weight: 900;
+        }
+        .resultList{
+          width:100%;
+          overflow: scroll;
+        }
+        .loadingBox{
+          position: fixed;
+          width: 30%;
+          height: 60px;
+          background-color: <%=tc.bg1%>;
+          border-radius: 10px;
+          border:2px solid #DDD;
+          box-shadow: 4px 6px 19px #585757;
+          bottom: 10px;
+          left: calc(50% - 15%);
+          color:<%=tc.fg1%>;
+          font:900 1.3em/60px  Verdana, Arial;
+          text-align: center;
+        }
+    </style>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script
+      crossorigin
+      src="https://unpkg.com/react@16/umd/react.development.js"
+      defer
+    ></script>
+    <script
+      crossorigin
+      src="https://unpkg.com/react-dom@16/umd/react-dom.development.js"
+      defer
+    ></script>
+    
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js" defer></script>
+    <script type="text/javascript" src="/xtk/js/common.js"></script>
+    <script type="text/javascript" src="/xtk/js/client/list.js"></script>
+    <script type="text/javascript" src="/xtk/js/core.js"></script>
+    <script type="text/javascript" src="/xtk/js/client/xml.js"></script>
+    <script type="text/javascript" src="/xtk/js/client/soap.js"></script>
+    <script type="text/javascript" src="/xtk/js/client/querydef.js"></script>
+    <script src="https://spin.js.org/spin.umd.js"></script>
+    <link href="https://spin.js.org/spin.css" rel="stylesheet"/>
+    <script type="text/babel" defer>
+      var serverUrl = window.location.protocol + "//" + window.location.host;
+      var sessionToken = "<%= sessionToken %>";
+
+    
+      class FilterForm  extends React.Component  {
+        constructor(props) {
+          super(props);
+          this.state = {
+            <%for each(var field in schemaDetails){
+              if(field.type == "datetime"){
+              %><%=field.name%>_before : '',<%=field.name%>_after : '', <%
+              }
+              else{
+              %><%=field.name%> : '',
+              <%}
+            }%>
+            prenom : '', nom : '', lineCount : 30, label : ''
+            };
+          this.handleChange = this.handleChange.bind(this);
+          this.handleSubmit = this.handleSubmit.bind(this);
+          this.changeTextValue = this.changeTextValue.bind(this);
+          this.handleFilter = props.handleFilter;
+        }
+
+        handleChange(event) {
+          const target = event.target;
+          const name = target.name;
+          const value = target.type === 'checkbox' ? target.checked : target.value;
+          //alert('Modif : ' + name);
+          if( name.match(/_operator$/) && (["empty","notEmpty"].indexOf( value ) == -1 && this.state[name.replace(/_operator$/,'')] == "") )
+            this.setState({[name]: value});
+          else
+            this.setState({[name]: value}, ()=>{
+              this.handleFilter( this.state );
+            });          
+        }
+        changeTextValue( event ){
+          const target = event.target;
+          const name = target.name;
+          const value = target.type === 'checkbox' ? target.checked : target.value;
+          this.setState({[name]: value});
+        }
+        handleSubmit(event) {
+          //alert('Soumi : ' + JSON.stringify(this.state) );
+          //loadEvents( this.state )
+          this.handleFilter( this.state );
+          event.preventDefault();
+        }
+
+          render() {
+              return <form onSubmit={this.handleSubmit}>
+                      <%for each(var field in schemaDetails){
+                        %>
+                      <div className="formField">
+                        <label><%=field.label%></label>
+                        <%if( field.enum ){%>
+                          <select name="<%=field.name%>" value={this.state.<%=field.name%>} onChange={this.handleChange}>
+                            <option value="">Tous</option>
+                            <% for each(value in field.enum.values){%>
+                            <option value="<%=value.value%>"><%=value.label%></option>
+                            <%}%>
+                          </select>
+                        <%} else if( field.type == "datetime") {%>
+                        Après le <input type="date" value={this.state.<%=field.name%>_after} onChange={this.handleChange} name="<%=field.name%>_after" placeholder="<%=field.label%>"/>
+                        Avant le <input type="date" value={this.state.<%=field.name%>_before} onChange={this.handleChange} name="<%=field.name%>_before" placeholder="<%=field.label%>"/>
+                        <%} else if( field.type == "boolean") {%>                        
+                          <select name="<%=field.name%>" value={this.state.<%=field.name%>} onChange={this.handleChange}>
+                            <option value="">Tous</option>
+                            <option value="true">Oui</option>
+                            <option value="false">Non</option>
+                          </select>
+                        <%} else {%>
+                          <select value={this.state.<%=field.name%>_operator}  onChange={this.handleChange} name="<%=field.name%>_operator">
+                            <option value="equals"><%=operatorLabel.eq%></option>
+                            <option value="greaterThan"><%=operatorLabel.gt%></option>
+                            <option value="lessThan"><%=operatorLabel.lt%></option>
+                            <option value="different"><%=operatorLabel.neq%></option>
+                            <option value="empty"><%=operatorLabel.null%></option>
+                            <option value="notEmpty"><%=operatorLabel.notnull%></option>
+                            <option value="startWith"><%=operatorLabel.startWith%></option>
+                            <option value="startNot"><%=operatorLabel.startNot%></option>
+                            <option value="contains"><%=operatorLabel.contains%></option>
+                            <option value="in"><%=operatorLabel.in%></option>
+                            <option value="notIn"><%=operatorLabel.notIn%></option>
+                          </select>
+                          <input type="text" value={this.state.<%=field.name%>} onChange={this.changeTextValue} name="<%=field.name%>" placeholder="<%=field.label%>"/>
+                        <%}%>
+                      </div>
+                        <%
+                      }%>
+                      <div className="formField">
+                        <label>Nombre de lignes</label><input type="number" value={this.state.lineCount} onChange={this.changeTextValue} name="lineCount" placeholder=""/>
+                      </div>
+                      {/*Allows the submit while press 'Enter' in form*/}
+                      <input type="submit" style={{"display" : "none"}}/>
+                    </form>;
+              }
+      }      
+      
+      class ElementsBoard extends React.Component{
+        constructor() {
+          super();
+          this.state = {
+            name: "ElementsBoard",
+            elements : null,
+            filter : {},
+            loading : false
+          };
+          this.loadElements = this.loadElements.bind(this);
+          //this.form = new FilterForm();
+          this.loadElements();
+        }
+        handleFilter( filter ){
+          console.log( "FILTER : ", filter );
+          this.setState({ filter : filter },
+            ()=>{
+              this.filterChange();
+            }
+          );
+        }
+        filterChange(){
+          this.setState({ loading : true })
+          if( this.loadTimeout )
+            clearTimeout( this.loadTimeout );
+          this.loadTimeout = setTimeout(this.loadElements.bind(this), 1000);
+        }
+        buildConditionExpr(name, value, operator){
+          var expr = "";
+          switch( operator ){
+            case 'equals' : expr = `${name} = '${value}'`; break;
+            case 'greaterThan' : expr = `${name} > '${value}'`; break;
+            case 'lessThan' : expr = `${name} < '${value}'`; break;
+            case 'startWith' : expr = `${name} LIKE '${value}' + '%'`; break;
+            case 'startNot' : expr = `${name} NOT LIKE '${value}' + '%'`; break;
+            case 'contains' : expr = `${name} LIKE '%' + '${value}' + '%'`; break;
+            case 'different' : expr = `${name} <> '${value}' `; break;
+            case 'empty' : expr = `${name} IS NULL `; break;
+            case 'notEmpty' : expr = `${name} IS NOT NULL `; break;
+            case 'in' : expr = `${name} IN ('${value.split(',').join("','")}')`; break;
+            case 'notIn' : expr = `${name} NOT IN ('${value.split(',').join("','")}')`; break;
+            default : expr = `${name} = '${value}'`; break;
+          }
+          return expr;
+        }
+        loadElements( ) {
+          var query = new QueryDef('<%=schema%>','select');
+          query.setLineCount(this.state.filter.lineCount || 30);
+          /*query.addSelectExpr('@id');
+          query.addSelectExpr('@firstName');
+          */
+          <%for each(var field in schemaDetails){
+              %>query.addSelectExpr('<%=field.path%>','<%=field.name%>',true);
+              <%
+          }%>
+          <%if(schemaKey != ""){%>
+          query.addSelectExpr('<%=schemaKey%>','internalKey',true);
+          <%}%>
+          const filter = this.state.filter;
+          if( filter )
+          {
+            //console.log( filter );
+            <%for each(var field in schemaDetails){
+              if(field.type == 'datetime'){
+                %>if( filter.<%=field.name%>_before && filter.<%=field.name%>_before != "" )
+              query.addWhereConditionExpr(`<%=field.path%> < #${filter.<%=field.name%>_before}#`);
+                if( filter.<%=field.name%>_after && filter.<%=field.name%>_after != "" )
+              query.addWhereConditionExpr(`<%=field.path%> > #${filter.<%=field.name%>_after}#`);
+                <%
+                }
+              else if(field.type == 'boolean'){
+                %>if( filter.<%=field.name%> && filter.<%=field.name%> != '')
+              query.addWhereConditionExpr(`<%=field.path%> = ${filter.<%=field.name%> == "false" ? 'false' : 'true'}`);
+                <%
+                }
+              else {
+                %>if( filter.<%=field.name%>_operator && filter.<%=field.name%>_operator != "" 
+                    && ((filter.<%=field.name%> && filter.<%=field.name%> != "") 
+                        ||
+                        ["empty","notEmpty"].indexOf(filter.<%=field.name%>_operator) != -1)
+                    )
+                    query.addWhereConditionExpr(this.buildConditionExpr('<%=field.path%>',`${filter.<%=field.name%>}`,`${filter.<%=field.name%>_operator}`));
+                  else if( filter.<%=field.name%> && filter.<%=field.name%> != "" )
+                    query.addWhereConditionExpr(`<%=field.path%> = '${filter.<%=field.name%>}'`);
+                <%
+              }
+            }%>
+            /*
+            if( filter.prenom && filter.prenom != "" )
+              query.addWhereConditionExpr(`@firstName = '${filter.prenom}'`);
+            if( filter.nom && filter.nom != "" )
+              query.addWhereConditionExpr(`@nom LIKE '${filter.nom}%'`);
+            if( filter.label && filter.label != "" )
+              query.addWhereConditionExpr(`@label = '${filter.label}'`);
+              */
+          }
+         // query.addOrderByExpr(`@created`, true);
+
+          query.execute( serverUrl + '/nl/jsp/soaprouter.jsp', sessionToken, {
+            onXtkQueryCompleted : function(queryDef, xmlResult, ex){
+              //console.log(ex)
+              if(xmlResult && xmlResult.childNodes && xmlResult.childNodes.length > 0)
+              {
+                //this.state.events = xmlResult.childNodes;
+                //console.log('Hey : ', xmlResult )
+                this.setState({
+                  elements : xmlResult.childNodes,
+                  loading : false
+                })
+              }
+              else
+                this.setState({
+                    elements : [],
+                    loading : false
+                  })
+            }.bind(this)
+
+          } );   
+        }
+        render(){
+          const elementsTable = [];
+          if( this.state.elements && this.state.elements.length > 0)
+          {
+            this.state.elements.forEach((element, i) => {
+                //console.log(element)
+                var fieldElement = {}
+                element.childNodes.forEach((node)=>{fieldElement[node.nodeName] = node})
+                elementsTable.push(<tr key={fieldElement.internalKey ? fieldElement.internalKey.textContent : i}>
+                  <%for each(var field in schemaDetails){
+                %><td>{fieldElement.<%=field.name%>Label ? fieldElement.<%=field.name%>Label.textContent : fieldElement.<%=field.name%> ? fieldElement.<%=field.name%>.textContent : ""}</td>
+                <%
+              }%>
+              </tr>);
+              });
+
+          //console.log(this.form)
+            return <div>
+              <FilterForm handleFilter={this.handleFilter.bind(this)}/>
+              <LoadingInfo display={this.state.loading}/>
+              <div className="resultList">
+                <table><thead><tr>
+                <%for each(var field in schemaDetails){
+                  %><th><%=field.label%></th>
+                  <%
+                }%>
+                </tr></thead>
+                <tbody>{elementsTable}</tbody></table>
+              </div>
+              </div>;
+          }
+          else
+            return <div>
+                <FilterForm handleFilter={this.handleFilter.bind(this)}/>
+              <LoadingInfo display={this.state.loading}/>
+                <div style={{"textAlign":"center"}}><h2>Pas de résultat à afficher</h2></div>
+              </div>;
+        }
+      }
+    class LoadingInfo extends React.Component{
+
+      render(){
+        var opts = {
+              lines: 24, // The number of lines to draw
+              length: 30, // The length of each line
+              width: 5, // The line thickness
+              radius: 20, // The radius of the inner circle
+              scale: 0.55, // Scales overall size of the spinner
+              corners: 1, // Corner roundness (0..1)
+              speed: 1, // Rounds per second
+              rotate: 30, // The rotation offset
+              animation: 'spinner-line-fade-quick', // The CSS animation name for the lines
+              direction: 1, // 1: clockwise, -1: counterclockwise
+              color: '<%=tc.fg1%>', // CSS color or array of colors
+              fadeColor: 'transparent', // CSS color or array of colors
+              top: '50%', // Top position relative to parent
+              left: '55px', // Left position relative to parent
+              shadow: '0 0 1px transparent', // Box-shadow for the lines
+              zIndex: 2000000000, // The z-index (defaults to 2e9)
+              className: 'spinner', // The CSS class to assign to the spinner
+              position: 'absolute', // Element positioning
+          };
+          var spinner = new Spin.Spinner(opts).spin();
+
+          return <div className="loadingBox" dangerouslySetInnerHTML={{ __html: "Loading..." + spinner.el.outerHTML}} style={{"display" : this.props.display ? "block" : "none"}}></div>;
+        }
+    }
+
+      ReactDOM.render(
+        <ElementsBoard/>,
+        document.querySelector("#app")
+      );
+      
+    </script>
+  </head>
+  <body>
+    <h1>Visualisation des <%=schemaObj.label%></h1>
+    
+
+    <div id="app"></div>
+  </body>
+</html>
