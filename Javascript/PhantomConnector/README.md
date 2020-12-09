@@ -5,6 +5,13 @@ Plan to use unit test with mocha JS for mirror Page testing.
 
 //TODO : use of the PhantomConnector class
 
+Please, save the utils_phantomConnector.js as 'utils:phantomConnector.js' xtk:javascript object
+ad utils_phantomConnector.js as 'utils:phantomScriptConnector.jst' xtk:jst object (everything should be located at least in /Administration/Configuration, or /Administration/Paramétrage in french install )
+
+The class must be instanciate with parameters : new PhantomConnector( object );
+
+then, the function "run" should be call and it return is what have been log (usually by 'console.log' in your script, or error). You can produce file and return the file name for example.
+
 Example :
   //RENDERING A WEBPAGE INTO AN XTK IMAGE
   loadLibrary('utils:phantomConnector.js');
@@ -14,10 +21,10 @@ Example :
     width : 600,
     height : 320
     },
-  //onPageLoadedScript : "console.log(page.content);",
   onPageLoadedScript : "page.zoomFactor = 0.5;  var base64 = page.renderBase64('PNG');console.log(base64);"
-  //jsToLoad : "nms:campaign.js"
+  //jsToLoad : "nms:campaign.js" //this is an example, but don't do this, nms:campaign.js as it will crash the browser...
   });
+
 
   var test = tester.run();
   //setOption('LOGS', test );
