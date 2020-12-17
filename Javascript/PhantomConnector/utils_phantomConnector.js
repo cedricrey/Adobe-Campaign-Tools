@@ -30,8 +30,10 @@ var PhantomConnector = function( arguments ){
     pageHTML : { $ : arguments.pageHTML ? arguments.pageHTML.toString().replace(/"/gm,('\\"')) : "" },
     onPageLoadedScript : { $ : arguments.onPageLoadedScript || "" },
     autoExit : arguments.handleExit ? false : true,
-    viewPort : arguments.viewPort || {}
+    viewPort : arguments.viewPort || {}    
   }
+  if( arguments.proxy && arguments.proxy != "" )
+    this.proxy = arguments.proxy;
   //this.execTimeout = arguments.execTimeout || 60; //Only for Unix system...
 }
 
@@ -76,7 +78,11 @@ PhantomConnector.prototype.run = function( ){
   //logInfo("Script File is : " + this.executionScriptFileName);
   //return
   //In Unix like system... => 'timeout -s SIGKILL --preserve-status '+ this.execTimeout + 'phantomjs ....')
-  var result = execCommand('phantomjs --ssl-protocol=any --ignore-ssl-errors=yes ' + this.executionScriptFileName, true );
+  var command = 'phantomjs --ssl-protocol=any --ignore-ssl-errors=yes '
+  if( this.proxy )
+    command += " --proxy=" + this.proxy;
+  command += " " + this.executionScriptFileName;
+  var result = execCommand(command, true );
 
   //Remove the temp script
   PhantomConnector.removeFile(this.executionScriptFileName);
