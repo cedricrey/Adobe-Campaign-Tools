@@ -13,6 +13,7 @@ The class must be instanciate with parameters : new PhantomConnector( object );
 then, the function "run" should be call and it return is what have been log (usually by 'console.log' in your script, or error). You can produce file and return the file name for example.
 
 Example :
+`
   //RENDERING A WEBPAGE INTO AN XTK IMAGE
   loadLibrary('utils:phantomConnector.js');
   var tester = new PhantomConnector({
@@ -33,3 +34,4 @@ Example :
   newImg.name="renderedPage.png";
   newImg.namespace="cus";
   newImg.save();
+`
