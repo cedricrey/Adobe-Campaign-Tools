@@ -57,7 +57,7 @@ page.onError = onError;
 }
 else if( config.pageHTML )
 {
-%>page.setContent(<%=config.pageHTML%>, "http://Localhost/");
+%>page.setContent("<%=config.pageHTML%>", "http://localhost/");
 onPageLoaded('success');
 <%
 }

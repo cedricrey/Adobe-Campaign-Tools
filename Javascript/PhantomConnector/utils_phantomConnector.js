@@ -27,7 +27,7 @@ var PhantomConnector = function( arguments ){
     jsToLoad : arguments.jsToLoad || "",
     injectJS : arguments.injectJS || "",
     pageURL : arguments.pageURL || "",
-    pageHTML : { $ : arguments.pageHTML || "" },
+    pageHTML : { $ : arguments.pageHTML ? arguments.pageHTML.replace(/"/gm,('\\"')) : "" },
     onPageLoadedScript : { $ : arguments.onPageLoadedScript || "" },
     autoExit : arguments.handleExit ? false : true,
     viewPort : arguments.viewPort || {}
