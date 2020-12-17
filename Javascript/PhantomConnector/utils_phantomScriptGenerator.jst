@@ -49,16 +49,17 @@ if( config.initScript )
     <%
 }
 
-if( config.@pageURL )
+if( config.@pageURL && config.@pageURL != "" )
 {
 %>page.open('<%=config.@pageURL%>', onPageLoaded);
 page.onError = onError;
 <%
 }
-else if( config.pageHTML )
+else if( config.pageHTML && config.pageHTML != "" )
 {
 %>page.setContent("<%=config.pageHTML%>", "http://localhost/");
-onPageLoaded('success');
+//onPageLoaded('success');
+page.onLoadFinished = onPageLoaded;
 <%
 }
 else if( config.onPageLoadedScript ){
