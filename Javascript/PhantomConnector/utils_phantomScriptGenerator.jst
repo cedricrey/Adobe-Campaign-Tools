@@ -10,6 +10,18 @@ var pageViewHeight = config.viewPort.@height ? config.viewPort.@height : 1000;
 };
 <%
 
+if( config.injectJSLib )
+{
+    %>
+    try{
+    <%= config.injectJSLib %>
+    }
+    catch( e ){
+      console.log("injectJSLib script - " + e);
+      phantom.exit(1);
+    }
+    <%
+}
 
 if( config.embededJSLib )
 {

@@ -25,17 +25,19 @@ var PhantomConnector = function( arguments ){
   this.scriptConfig = {
     initScript : { $ : arguments.initScript || "" },
     jsToLoad : arguments.jsToLoad || "",
+    injectJS : arguments.injectJS || "",
     pageURL : arguments.pageURL || "",
     pageHTML : { $ : arguments.pageHTML || "" },
     onPageLoadedScript : { $ : arguments.onPageLoadedScript || "" },
     autoExit : arguments.handleExit ? false : true,
     viewPort : arguments.viewPort || {}
   }
-
+  //this.execTimeout = arguments.execTimeout || 60; //Only for Unix system...
 }
 
 PhantomConnector.globals = {
-  executionDirectory : getOption('PhantomConnector_directory') || 'PHANTOM'
+  executionDirectory : getOption('PhantomConnector_directory') || 'PHANTOM',
+  libDirectory : getOption('PhantomConnector_libDirectory') ? getOption('PhantomConnector_libDirectory') : getOption('PhantomConnector_directory') ? getOption('PhantomConnector_directory') + '/lib' : 'PHANTOM/lib'
 /** 
 * Run Phantom as configured in the instance
 * @summary function "run" the PhantomJS command with the script produced and returns what have been log (usually by 'console.log' in your script, or error). You can produce file and return the file name for example
@@ -50,13 +52,30 @@ PhantomConnector.prototype.run = function( ){
       this.scriptConfig.jsToLoad = [this.scriptConfig.jsToLoad];
     this.scriptConfig.embededJSLib = {$ : ""};
     for each(var lib in this.scriptConfig.jsToLoad )
-      this.scriptConfig.embededJSLib.$ += PhantomConnector.manageScriptDependency( "loadLibrary('"+lib+"')" ) + "\n";
+      {
+        this.scriptConfig.embededJSLib.$ += PhantomConnector.manageScriptDependency( "loadLibrary('"+lib+"')" ) + "\n";
+      }
+    }
+  if( this.scriptConfig.injectJS != "" )
+    {
+    if(this.scriptConfig.injectJS.constructor !== Array)
+      this.scriptConfig.injectJS = [this.scriptConfig.injectJS];
+    this.scriptConfig.injectJSLib = {$ : ""};
+    for each(var lib in this.scriptConfig.injectJS )
+      {
+        var libFileName = PhantomConnector.loadInjectedLib( lib );
+        this.scriptConfig.injectJSLib.$ += "phantom.injectJs('"+libFileName+"');" + "\n";
+
+      }
     }
   var executionScript = this.generateExecutionScript();
+  if( !executionScript.match(/phantom\.exit\(\)/))
+    logWarning("WARNING : It seems that 'handleExit' option is true, but no 'phantom.exit()' execution found in the script. Execution may stuck up without exiting and needs an admin kill...");
   //Generate the temp script
   PhantomConnector.writeFile( this.executionScriptFileName , executionScript );
   //logInfo("Script File is : " + this.executionScriptFileName);
   //return
+  //In Unix like system... => 'timeout -s SIGKILL --preserve-status '+ this.execTimeout + 'phantomjs ....')
   var result = execCommand('phantomjs --ssl-protocol=any --ignore-ssl-errors=yes ' + this.executionScriptFileName, true );
 
   //Remove the temp script
@@ -66,7 +85,8 @@ PhantomConnector.prototype.run = function( ){
     return result[1];
   else
     {
-      logError( "[PhantomConnector] " + result[1] )
+      var codeError = result[0];
+      logError( "[PhantomConnector] " + result[1] + ' ('+ codeError +')');
       throw result[1];
     }
 }
@@ -100,7 +120,7 @@ PhantomConnector.removeFile = function( fileName ){
   file.remove();
 }
 
-PhantomConnector.dependencyReg = /(?:loadLibrary|phantom\.injectJs)\(['"]([^'"]*)['"]\)/;
+PhantomConnector.dependencyReg = /(?:loadLibrary)\(['"]([^'"]*)['"]\)/;
 PhantomConnector.manageScriptDependency = function( script ){
   result = script.toString().replace( PhantomConnector.dependencyReg, function( correspondance, libName ){
     return xtk.javascript.load( libName ).data.toString();
@@ -110,4 +130,25 @@ PhantomConnector.manageScriptDependency = function( script ){
     result = PhantomConnector.manageScriptDependency( result );
 
   return result;
+}
+PhantomConnector.loadInjectedLib = function( libName ){
+  var directoryName = PhantomConnector.globals.libDirectory;
+  var directory = new File( directoryName );
+  if( !directory.exists )
+     directory.mkdir();
+  var data = xtk.javascript.load( libName ).data.toString();
+  var scriptBuffer = new MemoryBuffer();
+  scriptBuffer.fromString( data );
+  //var fileName = 
+  var signature = scriptBuffer.sha256();
+  fileName = directoryName + '/' + signature + '.js';  
+  var file = new File( fileName );
+  if( !file.exists )
+    scriptBuffer.save( fileName );
+
+
+  file.dispose();
+  scriptBuffer.dispose();
+
+  return fileName;
 }
