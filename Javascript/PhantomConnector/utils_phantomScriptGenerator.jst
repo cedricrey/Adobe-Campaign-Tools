@@ -10,7 +10,7 @@ var pageViewHeight = config.viewPort.@height ? config.viewPort.@height : 1000;
 };
 <%
 
-if( config.injectJSLib )
+if( config.injectJSLib && config.injectJSLib != "" )
 {
     %>
     try{
@@ -23,7 +23,7 @@ if( config.injectJSLib )
     <%
 }
 
-if( config.embededJSLib )
+if( config.embededJSLib && config.embededJSLib != "" )
 {
     %>
     try{
@@ -36,7 +36,7 @@ if( config.embededJSLib )
     <%
 }
 
-if( config.initScript )
+if( config.initScript && config.initScript != "" )
 {
     %>
     try{
