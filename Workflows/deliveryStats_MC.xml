@@ -1,0 +1,346 @@
+<workflow form="xtk:workflow" internalName="deliveryStats_MC" label="DeliveryStats MC"
+              modelName="newWorkflow" scenario-cs="Notification du responsable d'un workflow (notifySupervisor)"
+              schema="nms:recipient" simulation="false">
+      <activities>
+        <end label="Fin : reset Sémaphore" name="end" x="1184" y="640">
+          <initScript>instance.vars.enCours = false;</initScript>
+        </end>
+        <end label="Fin 2" name="end2" x="656" y="16"/>
+        <fork label="Branchement 2" name="fork2" x="192" y="328">
+          <transitions>
+            <transition name="transition1" target="query"/>
+            <transition name="transition2" target="andjoin2"/>
+          </transitions>
+        </fork>
+        <fork label="Branchement" name="fork" x="432" y="312">
+          <transitions>
+            <transition label="Transition 1" name="transition1" target="extract"/>
+          </transitions>
+        </fork>
+        <andjoin label="Rendez-vous 2" mainSet="fork2" name="andjoin2" x="408" y="640">
+          <transitions>
+            <transition name="transition" target="enrich"/>
+          </transitions>
+        </andjoin>
+        <andjoin label="Rendez-vous" mainSet="extract" name="andjoin" x="1424" y="384">
+          <transitions>
+            <transition name="transition" target="jstest"/>
+          </transitions>
+        </andjoin>
+        <schedule label="Planificateur" name="schedule" x="160" y="40">
+          <transitions>
+            <transition name="transition" target="jstest2"/>
+          </transitions>
+          <period>m_abDay='7' m_abDay[0]='0' m_abDay[1]='0' m_abDay[2]='0' m_abDay[3]='0' m_abDay[4]='0' m_abDay[5]='0' m_abDay[6]='0' m_abMonth='12' m_abMonth[0]='0' m_abMonth[10]='0' m_abMonth[11]='0' m_abMonth[1]='0' m_abMonth[2]='0' m_abMonth[3]='0' m_abMonth[4]='0' m_abMonth[5]='0' m_abMonth[6]='0' m_abMonth[7]='0' m_abMonth[8]='0' m_abMonth[9]='0' m_iDayMode='1' m_iMaxIter='0' m_iMonthDay='0' m_iMonthMode='0' m_iPosDay='0' m_iSpanDay='0' m_iSpanWeek='0' m_iTimeMode='3' m_iValidMode='1' m_iWeekDay='0' m_iWeekMode='0' m_tmFixedDay='' m_tmFixedTime='00:00:00.000' m_tmIterDate='' m_tmIterTime='00:00:00.000' m_tmOrgDate='' m_tmSpanTime='15mn' m_tmStartDate='0001-11-24' m_tmStartTime='00:13:00.000' m_tmStopDate='0001-11-24' m_tmStopTime='' m_vtmTime='0'</period>
+        </schedule>
+        <jstest label="Rest t-il des compte à traiter ?" name="jstest" x="1560" y="392">
+          <transitions>
+            <test label="Vrai" name="transition1" target="fork">
+              <condition>vars.recCount &gt; 0</condition>
+            </test>
+            <default name="default" target="andjoin2"/>
+          </transitions>
+        </jstest>
+        <jstest label="traitement en cours?" name="jstest2" x="280" y="40">
+          <transitions>
+            <test label="Vrai" name="transition1" target="js22">
+              <condition>instance.vars.enCours!=true</condition>
+            </test>
+            <default label="Déjà en cours" name="default" target="end2"/>
+          </transitions>
+        </jstest>
+        <js label="Sauvegarde du nom de la table de travail - init des variables"
+            name="js2" x="520" y="160">
+          <transitions>
+            <done name="done" target="fork2"/>
+            <error name="error"/>
+          </transitions>
+          <script>vars.globalStatsTable = vars.tableName;
+
+
+
+var endDate = new Date();
+endDate.setHours( endDate.getHours() - 3 );
+vars.dateCurrentEnd = endDate;</script>
+        </js>
+        <js label="initialisation Sémaphore" name="js22" x="200" y="160">
+          <transitions>
+            <done name="done" target="query2"/>
+            <error name="error"/>
+          </transitions>
+          <script>instance.vars.enCours=true;</script>
+        </js>
+        <sql label="Mise à jour / Insertion dans la table de travail (pour cumule des chiffres de toutes les instances)"
+             name="sql" x="1072" y="296">
+          <transitions>
+            <done name="done" target="andjoin"/>
+            <error name="error"/>
+          </transitions>
+          <script>--Cas ou la ligne (diffusion + date) existe déjà dans la table (traité en // par un un autre RT)
+UPDATE &lt;%= vars.globalStatsTable %&gt;
+SET 
+  iFirstSuccess = (gst.iFirstSuccess + tmp.iFirstSuccess),
+  iFirstError = (gst.iFirstError + tmp.iFirstError),
+  iretriesSuccess = (gst.iretriesSuccess + tmp.iretriesSuccess),
+  iretriesError = (gst.iretriesError + tmp.iretriesError),
+  dVolume = (gst.dVolume + tmp.dVolume)  
+
+FROM &lt;%= vars.globalStatsTable %&gt; gst
+    INNER JOIN &lt;%= vars.tableName %&gt; tmp ON ( gst.sDeliveryName = tmp.sHistoName AND gst.tsDate = tmp.tsDate );
+
+
+--Cas ou la ligne (diffusion + date) n'existe pas encore dans la table de travail
+INSERT INTO &lt;%= vars.globalStatsTable %&gt; (sDeliveryName,tsDate,iFirstSuccess,iFirstError,iretriesSuccess,iretriesError,dVolume) 
+  SELECT tmp.sHistoName,tmp.tsDate,tmp.iFirstSuccess,tmp.iFirstError,tmp.iretriesSuccess,tmp.iretriesError,tmp.dVolume 
+    FROM &lt;%= vars.tableName %&gt; tmp
+    LEFT OUTER JOIN &lt;%= vars.globalStatsTable %&gt; gst ON ( gst.sDeliveryName = tmp.sHistoName AND gst.tsDate = tmp.tsDate ) WHERE gst.sDeliveryName IS NULL;
+</script>
+        </sql>
+        <query label="Préparation de la table de travail" name="query2" recipientLink=""
+               schema="nms:deliveryStat" x="360" y="160">
+          <transitions>
+            <result name="result" target="js2"/>
+          </transitions>
+          <select>
+            <node expr="@date" label="Date"/>
+            <node expr="[@delivery-id]" label="Clé étrangère du lien 'Diffusion' (champ 'id')"/>
+            <node expr="@firstError" label="Erreurs"/>
+            <node expr="@verifyMode" label="Mode simulation"/>
+            <node expr="@retriesError" label="Reprises en erreur"/>
+            <node expr="@retriesSuccess" label="Reprises en succès"/>
+            <node expr="@firstSuccess" label="Succès"/>
+            <node expr="@volume" label="Volume"/>
+            <node alias="@deliveryName" expr="''" label="Nom de la diffusion"/>
+          </select>
+          <where filterName="backGroundFilterFrm" filteringSchema="nms:deliveryStat">
+            <condition expr="1 = 0" internalId="1468662152"/>
+          </where>
+          <humanCond>Requête : 1 égal à 0</humanCond>
+        </query>
+        <query distinct="false" label="Requête : type égal à Instance d'exécution et activé et non interaction et message Center"
+               name="query" recipientLink="" schema="nms:extAccount" x="304" y="320">
+          <initScript>vars.execIdXMLQuery = '(/extAccount/@executionInstanceId)[1]';</initScript>
+          <transitions>
+            <result name="result" target="fork"/>
+          </transitions>
+          <select>
+            <node expr="@id" label="Clé primaire"/>
+            <node expr="@name" label="Nom interne"/>
+            <node expr="@label" label="Libellé"/>
+          </select>
+          <where filterName="backGroundFilterFrm">
+            <condition boolOperator="AND" expr="@type = 11" internalId="3148879398"/>
+            <condition boolOperator="AND" expr="@active = 1" internalId="3148879399"/>
+            <condition boolOperator="AND" expr="@isInteraction = 0" internalId="3148879401"/>
+            <condition expr="@isMessageCenter = 1" internalId="2692678312"/>
+          </where>
+          <humanCond>Requête : type égal à Instance d'exécution et activé et non interaction et message Center</humanCond>
+        </query>
+        <enrich label="Récupération de l'id de duffision" mainSet="andjoin2" name="enrich"
+                x="736" y="640">
+          <transitions>
+            <result name="result" target="extract2"/>
+          </transitions>
+          <select>
+            <node alias="@delivery-id" expr="[delivery/@id]" label="Clé primaire (Diffusions)"/>
+          </select>
+          <links cardinality="2" label="Diffusions" name="delivery" schema="nms:delivery">
+            <condition dstExpr="@internalName" srcExpr="@deliveryName"/>
+          </links>
+        </enrich>
+        <extract label="Partage 2" name="extract2" schema="nms:recipient" x="888"
+                 y="640">
+          <transitions>
+            <extractOutput enabled="true" label="Sous-ensemble" name="extractOutput"
+                           recipientLink="" schema="temp:enrich" schemaOverride="true"
+                           target="writer">
+              <filter enabled="true">
+                <where filterName="backGroundFilterFrm" id="1661469135">
+                  <condition boolOperator="AND" expr="[@delivery-id] IS NOT NULL"
+                             internalId="1660092875"/>
+                  <condition expr="[@delivery-id] &lt;&gt; 0" internalId="1660748237"/>
+                </where>
+                <humanCond>Requête : clé primaire (Diffusions) n'est pas vide et clé primaire (Diffusions) différent de 0</humanCond>
+              </filter>
+            </extractOutput>
+            <done name="done"/>
+            <remainder name="remainder"/>
+          </transitions>
+        </extract>
+        <extract concatenateSegmentCode="false" label="Partage" name="extract" schema="nms:recipient"
+                 x="568" y="328">
+          <transitions>
+            <extractOutput enabled="true" label="Compte externe" name="extractOutput"
+                           recipientLink="" schema="nms:recipient" target="soapImportBatchBl2">
+              <limiter enabled="true" number="1" random="true" type="number">
+                <humanCond>Tirage aléatoire limité à 1</humanCond>
+              </limiter>
+            </extractOutput>
+            <done name="done"/>
+            <remainder enabled="1" label="Reste" name="remainder" target="andjoin"/>
+          </transitions>
+        </extract>
+        <writer label="Mise à jour de données" name="writer" schema="nms:deliveryStat"
+                x="1040" y="640">
+          <transitions>
+            <done enabled="true" name="done" target="end"/>
+            <remainder name="remainder"/>
+          </transitions>
+          <primaryKeyNode calcExpr="@date" dstExpr="@date" id="1663369683"/>
+          <primaryKeyNode calcExpr="[@delivery-id]" dstExpr="[@delivery-id]" id="1664025044"/>
+          <node calcExpr="@date" dstExpr="@date" id="1668809173"/>
+          <node calcExpr="[@delivery-id]" dstExpr="[@delivery-id]" id="1670054359"/>
+          <node calcExpr="@firstError" dstExpr="@firstError" id="1670906328"/>
+          <node calcExpr="@retriesError" dstExpr="@retriesError" id="1672413658"/>
+          <node calcExpr="@firstSuccess" dstExpr="@firstSuccess" id="1673331163"/>
+          <node calcExpr="@retriesSuccess" dstExpr="@retriesSuccess" id="1675035101"/>
+          <node calcExpr="@volume" dstExpr="@volume" id="1675952606"/>
+          <node calcExpr="@verifyMode" dstExpr="@verifyMode" id="1671758297"/>
+        </writer>
+        <soapImport callName="ExecuteQuery" collectLineNumber="false" label="Récupération de deliveryStats"
+                    name="soapImportBatchBl2" serviceName="XtkQueryDef" x="776" y="296">
+          <transitions>
+            <result name="result" target="sql"/>
+            <remainder name="remainder"/>
+          </transitions>
+          <sample>&lt;?xml version="1.0"?&gt;
+&lt;deliveryStat-collection&gt;
+ &lt;deliveryStat date="" firstError="0" firstSuccess="0" retriesSuccess="0" retriesError="0" volume="0" histoName="abcde"/&gt;
+&lt;/deliveryStat-collection&gt;</sample>
+          <dataSourceConfig codepage="0" colType="2" commaIsSep="true" consecutiveDelimiters="false"
+                            firstLineIsTitle="false" multiline="false" semiColumnIsSep="false"
+                            spaceIsSep="false" tabIsSep="false">
+            <dataSourceColumn ignore="true" label="deliveryStat" name="." width="255"/>
+            <dataSourceColumn dateFormat="ymdsoap" dateSep="-" ignore="false" label="@date"
+                              name="@date" typeXform="datetime" width="255"/>
+            <dataSourceColumn label="@firstError" name="@firstError" type="long"
+                              width="255"/>
+            <dataSourceColumn label="@firstSuccess" name="@firstSuccess" type="long"
+                              width="255"/>
+            <dataSourceColumn label="@histoName" name="@histoName" width="255"/>
+            <dataSourceColumn label="@retriesError" name="@retriesError" type="long"
+                              width="255"/>
+            <dataSourceColumn label="@retriesSuccess" name="@retriesSuccess" type="long"
+                              width="255"/>
+            <dataSourceColumn label="@volume" name="@volume" type="double" width="255"/>
+            <sampleLines codepage="0">
+              <line>&lt;?xml version='1.0'?&gt;
+&lt;deliveryStat-collection&gt;
+  &lt;deliveryStat date="" firstError="0" firstSuccess="0" histoName="abcde" retriesError="0"
+                retriesSuccess="0" volume="0"/&gt;
+&lt;/deliveryStat-collection&gt;</line>
+            </sampleLines>
+          </dataSourceConfig>
+          <soapInit>loadLibrary("/nl/core/shared/nl.js");
+NL.require("/nl/core/shared/xtk.js")
+  .require('/nms/executionInstance.js');
+//Explicite la table a utiliser
+setSchemaSqlTable(vars.targetSchema,vars.tableName);
+//Recup du compte courant
+var queryExtAccount = xtk.queryDef.create(
+  &lt;queryDef schema={vars.targetSchema} operation="select"&gt;
+    &lt;select&gt;
+      &lt;node expr="@id"/&gt;
+    &lt;/select&gt;
+  &lt;/queryDef&gt;);
+
+var extAccountId = queryExtAccount.ExecuteQuery()[0].@id;
+document.extAccountId = extAccountId;
+var account = nms.extAccount.load( extAccountId );
+vars.url = account.server;
+vars.login = account.account;
+vars.password = account.password;
+
+
+document.cnx = new HttpSoapConnection(vars.url + '/nl/jsp/soaprouter.jsp', 'utf-8', 0)
+document.soapSrv = new SoapService(cnx, "xtk:queryDef");
+document.soapSrv.addMethod('ExecuteQuery', 'xtk:queryDef#ExecuteQuery',
+                           ['sessiontoken', 'string','entity', 'NLElement'],
+                           ['pdomOutput', 'NLElement'])
+var tokens;
+try{
+//V7
+  tokens = NL.ExecutionInstance.logonRemote(vars.url, vars.login, vars.password);
+}
+catch( e )
+{
+//V6
+  tokens = NL.ExecutionInstance.logonRemote(document.cnx, vars.login, vars.password);
+}
+document.cnx.addTokens(tokens["sessionToken"], tokens["securityToken"]);
+vars.resultOk = false;</soapInit>
+          <soapCall>var queryDef =
+  &lt;queryDef schema="nms:deliveryStat" operation="select" lineCount="500" unExpandMemoData="true"&gt;
+    &lt;select&gt;
+        &lt;node analyze="false" expr="@date" label="Date"
+              sort="true"/&gt;
+        &lt;node analyze="false" expr="@firstError"
+              label="Erreurs" sort="true"/&gt;
+        &lt;node analyze="false" expr="@verifyMode"
+              label="Mode simulation" sort="true"/&gt;
+        &lt;node analyze="false" expr="@retriesError"
+              label="Reprises en erreur" sort="true"/&gt;
+        &lt;node analyze="false" expr="@retriesSuccess"
+              label="Reprises en succès" sort="true"/&gt;
+        &lt;node analyze="false" expr="@firstSuccess"
+              label="Succès" sort="true"/&gt;
+        &lt;node analyze="false" expr="@volume" label="Volume"
+              sort="true"/&gt;
+        &lt;node alias="@histoName" analyze="false" expr="ToDate(TruncWeek(@date)) + '_' + [delivery/@deliveryCode]"
+              label="Nom local Diffusion" sort="true"/&gt;    
+    &lt;/select&gt;
+    &lt;orderBy&gt;
+      &lt;node expr="TruncDate(@date,1)"/&gt;
+    &lt;/orderBy&gt;
+    &lt;where&gt;
+      &lt;condition expr={"@date &gt; " + NL.XTK.toXTKString(vars.dateCurrentEnd)}/&gt;
+    &lt;/where&gt;
+  &lt;/queryDef&gt;;
+
+if( document.tsPointerDate )
+{
+  if( document.iPointerId )
+  {
+    var strPointerDate = NL.XTK.toXTKString(document.tsPointerDate);
+    queryDef.where.appendChild(&lt;condition expr={"@date &gt;= " + NL.XTK.toXTKString(strPointerDate)}/&gt;); // Useful to help DB use the db index
+    var condition = &lt;condition&gt;&lt;/condition&gt;;
+    condition.appendChild(&lt;condition expr={"TruncDate(@date, 1) &gt; TruncDate(" + NL.XTK.toXTKString(document.iPointerId) + ", 1)"}/&gt;);
+    queryDef.where.appendChild(condition);
+  }
+  else
+  {
+    queryDef.where.appendChild(&lt;condition expr={"@date &gt;= " + NL.XTK.toXTKString(document.tsPointerDate)}/&gt;);
+  }
+}
+
+var soapResult = undefined;
+try
+{
+logInfo( queryDef );
+  soapResult = document.soapSrv.ExecuteQuery("", queryDef);
+}
+catch(e)
+{ 
+  logError(e);
+}
+
+if( soapResult == undefined )
+{
+  var sg = new StringGroup("nms:messageCenter");
+  logError(sg.soapEmptyResponse(vars.url));
+}
+
+if( soapResult.*.length()==0 )
+  return null;
+
+var lastRow = soapResult.children()[soapResult.*.length()-1];
+document.iPointerId = String(lastRow.@date);
+document.tsPointerDate = parseTimeStamp(lastRow.@date);
+
+return soapResult;</soapCall>
+          <soapEnd>document.soapSrv.dispose();
+document.cnx.dispose();</soapEnd>
+        </soapImport>
+      </activities>
+      <scenario _operation="none" internalName="notifySupervisor"/>
+    </workflow>
