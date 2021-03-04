@@ -1,0 +1,24 @@
+<%@ page import="/nl/core/shared/nl.js,xtk:common.js,nms:campaign.js,xtk:dashboard.js"
+%><%@ page stringGroup="/nms/campaign"
+%><%@ page stringGroup="/nl/core/dashboard"
+%><%
+
+  NL.require('/nl/core/dashboardNavigation.js');
+  NL.require('/nl/core/jssphelper.js');
+  NL.Dashboard.init(request, response, {
+    require: ["/xtk/css/dashboard.css"]
+    }, function(dashboardContext) {
+
+
+ 
+
+    }); %>
+
+    <script>
+    $(document).ready( function(){
+    $('#dashboardHeader .nlui-dashboardNavigation-bottom').hide();
+    //OR $('#dashboardHeader').hide();
+    //YOU CAN NO USER NL.* on client side (=> NL.DataSource.QueryDef
+    //CF https://blog.floriancourgey.com/2018/12/http-post-for-adobe-campaign-soap-calls#client-side-wrapper-to-get-as-json-with-nldatasourcequerydefget
+    });
+    </script>
