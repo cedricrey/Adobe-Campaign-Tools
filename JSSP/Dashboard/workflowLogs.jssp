@@ -1,0 +1,71 @@
+<%@ page import="/nl/core/shared/nl.js,xtk:common.js,nms:campaign.js,xtk:dashboard.js"
+%><%@ page stringGroup="/nms/campaign"
+%><%@ page stringGroup="/nl/core/dashboard"
+%><%
+
+  NL.require('/nl/core/dashboardNavigation.js');
+  NL.require('/nl/core/jssphelper.js');
+  NL.Dashboard.init(request, response, {
+    require: ["/xtk/css/dashboard.css"]
+    }, function(dashboardContext) {
+
+    }); %>
+    
+    <table id="result" style="border:1px solid #000">
+      <thead><th style="min-width:200px;">Date</th><th>Message</th><th>Workflow</th></thead>
+      
+    </table>
+    <input type="button" value="more..." id="loadMore"/>
+    
+    <script>
+    $(document).ready( function(){
+    $('#dashboardHeader .nlui-dashboardNavigation-bottom').hide();
+    loadResult();
+    $('#loadMore').on('click', loadResult );
+    });
+    var lastId = null;
+    function loadResult(){
+    var callbacks = {
+      onComplete: function(){
+      //console.log('onComplete')
+      },
+      onError: function(a){
+      //console.warning('onError', a)
+      },
+      onSuccess: function(objects, needPagination){
+        //console.log('onSuccess', objects, needPagination);
+        objects.forEach( log => {
+          $('#result').append(`<tr>
+          <td style="border:1px solid #000;padding:5px;text-align:left;">${new Date(log.logDate).toLocaleString()}</td>
+          <td style="border:1px solid #000;padding:5px;text-align:left;">${log.message}</td>
+          <td style="border:1px solid #000;padding:5px;text-align:left;">${log.labelW}</td>
+          </tr>`);
+          lastId = parseInt(log.id);
+        });
+        
+      },
+    }
+    var query = {
+      schema: 'xtk:workflowLog',
+      select: {node: [
+        {expr: '@id'},
+        {expr: '@logDate'},
+        {expr: '@message'},        
+        {expr: '[workflow/@label]', alias: '@labelW'},
+      ]}, 
+      where: {condition: [
+        {expr: "@id != 0"},
+      ]}, 
+      orderBy: {
+        node: {expr: "@logDate", sortDesc: "true"}
+      }
+    };
+    if( lastId )
+      query.where.condition.push({expr: "@id < " + lastId});
+    var q = new NL.DataSource.QueryDef(query);
+    var start = 0, lineCount = 50;
+    q.get(start, lineCount, callbacks);
+
+    
+    }
+    </script>
