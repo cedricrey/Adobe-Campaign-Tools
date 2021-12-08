@@ -1,0 +1,12 @@
+{
+  "dependencies": {
+    "ac-connector": "latest",
+    "diff": "latest",
+    "deep-diff": "latest",
+    "xml-formatter" : "latest",
+    "jxon" : "latest"
+  },
+  "bin": {
+    "PackageComparator": "./PackageComparatorInterface.js"
+  }
+}
