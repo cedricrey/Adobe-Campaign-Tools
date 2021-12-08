@@ -1,0 +1,14 @@
+{
+  "name": "EnvDiffChecker",
+  "dependencies": {
+    "ac-connector": "latest",
+    "diff": "latest",
+    "deep-diff": "latest",
+    "xml-formatter": "latest",
+    "jxon": "latest",
+    "arg": "latest"
+  },
+  "bin": {
+    "EnvDiffChecker": "./EnvDiffChecker.js"
+  }
+}
