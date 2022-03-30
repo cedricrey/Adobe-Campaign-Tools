@@ -1,7 +1,7 @@
 ## Some usefull regex in campaign.
 
 ### Getting all <@include view|option="?"%> in content : 
-**/<\s*?%\s*?@\s*?include\s*?(view|option)=["']([^"']*)["'].*?%>/u**
+**/<\s*?%\s*?@\s*?include\s*?(view|option)=["']([^"']*)["'].*?%>/**
 ```
 var regInclude = /<\s*?%\s*?@\s*?include\s*?(view|option)=["']([^"']*)["'].*?%>/gm;
 while( s = regInclude.exec( html ) )
