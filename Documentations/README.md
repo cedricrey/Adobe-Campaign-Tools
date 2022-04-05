@@ -1,6 +1,6 @@
 
 ### $(vars) : Xtk:form and workflow activities variables
-You can uses vars in forms and severals activities like queries or enrich with the syntax :
+You can use contextual variables in forms and severals activities like queries or enrich with the syntax :
 ```
 $(vars/something)
 ```
