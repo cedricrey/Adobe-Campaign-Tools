@@ -11,7 +11,7 @@ With the navtree, you have to add : a <view> into <views> to define your view.
   
  # Web tool on dashboard 
   List of ACC custom function added to jQuery elements :
-    nlActionMessage: function c(g)​​
+  - nlActionMessage: function c(g)​​
   - nlAutoComplete: function c(g)​​
   - nlBackgroundEdit: function c(g)​​
   - nlBadger: function c(g)​​
