@@ -1,6 +1,6 @@
 # How to add JSSP to Navigation
 
-With the navtree, you have to add : a <view> into <views> to define your view.
+With the navtree, you have to add : a &lt;view> into &lt;views> to define your view.
   If you want to see your entry into the overflow pannel, you have to add type="overview" :
 &lt;view img="nlui-icon-nms-task" jssp="cus:myJSSP" label="My Entry" name="cusMyEntry"
           type="overview"/>
