@@ -1,0 +1,65 @@
+
+## Period TAG ##
+
+m_abDay='7'
+m_abDay[0]='1'
+m_abDay[1]='1'
+m_abDay[2]='1'
+m_abDay[3]='1'
+m_abDay[4]='1'
+m_abDay[5]='0'
+m_abDay[6]='0'
+m_abMonth='12'
+m_abMonth[0]='0'
+m_abMonth[10]='0'
+m_abMonth[11]='0'
+m_abMonth[1]='0'
+m_abMonth[2]='0'
+m_abMonth[3]='0'
+m_abMonth[4]='0'
+m_abMonth[5]='0'
+m_abMonth[6]='0'
+m_abMonth[7]='0'
+m_abMonth[8]='0'
+m_abMonth[9]='0'
+
+
+
+
+
+m_iMaxIter='0' (nombre max d'iteration)
+m_iMonthDay='0' (nombre du jour du mois en mensuel)
+m_iPosDay='0' => position du jour dans le mois - 1 : 1er m_iWeekDay du mois de 0(premier) à 4 (dernier) : m_iPosDay=2, m_iWeekDay=2 3ème jeudi du mois
+m_iSpanDay='0' => réccurence en jours (tous les X jours)
+m_iSpanWeek='0' => réccurence de semaine (toutes les X semaines)
+m_iWeekDay='0' (selection d'un jour dans la semaine, 0 = lundi)
+m_tmFixedDay='' (une seule fois, fixe, sinon vide)
+m_tmFixedTime='00:00:00.000' (une seule fois, fixe, sinon vide) MAIS !!! Sert aussi d'heure pour le quotidien/hebdo/mensuel
+
+/*Si nombre max d'iteration, "date à partir du "*/
+m_tmIterDate='' (date départ à partir du nombre max d'iteration)
+m_tmIterTime='00:00:00.000' (heure départ à partir du nombre max d'iteration)
+/**Attention : au moment du paramétrage, si nombre max d'itération, le calcul sera fait à partir de la date, même SI CELLE-CI EST INFERIEURE et prendra en compte les itération hypotétiquement déjà passées
+: Si 1 fois par jour, max de 5 itérations, départ 3jours au paravant, alors il ne restera plus que 2 itérations (5-3jours précédent = 2 jours restant)
+ */
+
+
+m_tmOrgDate=''
+m_tmSpanTime='1h' (interval en s, mn ou h)
+m_tmStartDate='0001-11-24'
+m_tmStartTime='08:16:00.000'
+m_tmStopDate='0001-11-24'
+m_tmStopTime='21:17:00.000'
+
+
+m_vtmTime='0' (pas d'heures selectionnées)
+m_vtmTime='2' (aux heures selectionnées, nombre de choix)
+m_vtmTime[0]='02:00:00.000' 
+m_vtmTime[1]='03:45:00.000'
+
+
+m_iDayMode='4' (4 = pas tous les jours (selection de jour), 1 : tous les jours, 2 : les jours de la semaine, 3 : tous les m_iSpanDay jours, 5 : mensuel, dernier jour du mois, 6 : le jour m_iMonthDay du mois)
+m_iMonthMode='0' (0 : NA, 1 : tous les mois, 2 tous les m_abMonth selectionnés)
+m_iTimeMode='3'  (3 : plusieurs fois par jour, 1 : quotidien/hebdo/mensuel/une seule fois )
+m_iValidMode='1' (1 : tout le temps, 2 entre 2 dates, 3 nombre max entre 2 dates)
+m_iWeekMode='0' (0 : NA, 1 : toutes les semaines, 2 : toutes les m_iSpanWeek semaines )
