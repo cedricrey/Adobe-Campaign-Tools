@@ -44,7 +44,8 @@ m_tmIterTime='00:00:00.000' (heure départ à partir du nombre max d'iteration)
  */
 
 
-m_tmOrgDate=''
+m_tmOrgDate='' Date de départ pour une récurence Hebdo avec une fréquence de m_iSpanWeek. 
+    Attention, si le départ se produit après le premier jour de la semaine selectionné, alors on passe à m_iSpanWeek semaines suivantes (ne démarre pas en milieu de "cycle")
 m_tmSpanTime='1h' (interval en s, mn ou h)
 m_tmStartDate='0001-11-24'
 m_tmStartTime='08:16:00.000'
