@@ -15,7 +15,15 @@ function toJXON(domDocument) {
       var elms = domDocument.getElements();
       for (var k in elms) {
           var tagName = elms[k].tagName;
-          obj[tagName] = transformElement(elms[k]);
+          //multiple children management
+          if( obj[tagName] )
+            {
+              if( obj[tagName].constructor != Array )
+                obj[tagName] = [obj[tagName]];
+            obj[tagName].push( transformElement(elms[k]) );
+            }
+          else
+            obj[tagName] = transformElement(elms[k]);
       }
       var childs = domDocument.childNodes
       for( var k in childs )
