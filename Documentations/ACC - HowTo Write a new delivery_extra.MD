@@ -1,6 +1,6 @@
 ## Not in the documentation, but you'll need extra informations
 
-### Delivery shcema extension
+### Delivery schema extension
 First, you can create your own channel value : into the nms:delivery:mappingType enum, add the new custom channel
 Reminder: to add a value into an existing and native enumeration, you have to extend the native schema, and extend the enum :
   ```
@@ -34,3 +34,9 @@ In the mapping extension, you'll need to add the exact name of your channel as a
 ```
 You can add this new attribute in the form (builtin forms are editable without problem)
 Then, in a fresh new mapping, used by the deliveries of the new channel, you have to identify the address field of your target schema (like @email for nms:recipient in Email message type etc.)
+
+
+### Number of targetParts to be processed for each call of processDeliveryPart
+By default, processDeliveryPart gets 8 messages each call. This can be configured, but it is not a server paramareter.
+It's a delivery parameter : Delivery additional parameters, then Delivery tab, and Message batch quantity. This value is 0 to default, meaning 8 minimum. You can change this (and it can be over 256) if you need to process much more messages each call.v ( in french : "Propriétés > Envoi > Regrouper les messages par : X")
+
