@@ -1,0 +1,73 @@
+<package author="Cedric REY" buildDate="2022-11-17 14:29:12.880Z"
+         buildNumber="9032" buildVersion="6.7">
+  <entities schema="xtk:workflow">
+    <workflow form="xtk:workflow" history="35" internalName="ScheduleWeekConstraint"
+              label="Date constraint by Day" modelName="newWorkflow"
+              schema="nms:recipient" simulation="false">
+      <activities>
+        <end label="TODO Job" name="end" x="976" y="136"/>
+        <fork label="Fork" name="fork" x="832" y="136">
+          <transitions>
+            <transition name="transition1" target="end"/>
+          </transitions>
+        </fork>
+        <schedule label="Schedule 5 of Month" name="schedule" x="40" y="96">
+          <transitions>
+            <transition name="transition" target="jstest"/>
+          </transitions>
+          <period>m_abDay='7' m_abDay[0]='0' m_abDay[1]='0' m_abDay[2]='0' m_abDay[3]='0' m_abDay[4]='0' m_abDay[5]='0' m_abDay[6]='0' m_abMonth='12' m_abMonth[0]='0' m_abMonth[10]='0' m_abMonth[11]='0' m_abMonth[1]='0' m_abMonth[2]='0' m_abMonth[3]='0' m_abMonth[4]='0' m_abMonth[5]='0' m_abMonth[6]='0' m_abMonth[7]='0' m_abMonth[8]='0' m_abMonth[9]='0' m_iDayMode='6' m_iMaxIter='0' m_iMonthDay='5' m_iMonthMode='1' m_iPosDay='0' m_iSpanDay='0' m_iSpanWeek='0' m_iTimeMode='1' m_iValidMode='1' m_iWeekDay='0' m_iWeekMode='0' m_tmFixedDay='' m_tmFixedTime='00:00:00.000' m_tmIterDate='' m_tmIterTime='00:00:00.000' m_tmOrgDate='' m_tmSpanTime='0s' m_tmStartDate='' m_tmStartTime='00:00:00.000' m_tmStopDate='' m_tmStopTime='00:00:00.000' m_vtmTime='0'</period>
+        </schedule>
+        <schedule label="Schedule Monday" name="scheduleMonday" x="712" y="48">
+          <initScript></initScript>
+          <transitions>
+            <transition name="transition" target="fork"/>
+          </transitions>
+          <period>m_abDay='7' m_abDay[0]='1' m_abDay[1]='0' m_abDay[2]='0' m_abDay[3]='0' m_abDay[4]='0' m_abDay[5]='0' m_abDay[6]='0' m_abMonth='12' m_abMonth[0]='0' m_abMonth[10]='0' m_abMonth[11]='0' m_abMonth[1]='0' m_abMonth[2]='0' m_abMonth[3]='0' m_abMonth[4]='0' m_abMonth[5]='0' m_abMonth[6]='0' m_abMonth[7]='0' m_abMonth[8]='0' m_abMonth[9]='0' m_iDayMode='4' m_iMaxIter='1' m_iMonthDay='0' m_iMonthMode='0' m_iPosDay='0' m_iSpanDay='0' m_iSpanWeek='0' m_iTimeMode='1' m_iValidMode='3' m_iWeekDay='0' m_iWeekMode='1' m_tmFixedDay='' m_tmFixedTime='00:00:00.000' m_tmIterDate='2021-11-01' m_tmIterTime='00:00:00.000' m_tmOrgDate='' m_tmSpanTime='0s' m_tmStartDate='' m_tmStartTime='00:00:00.000' m_tmStopDate='' m_tmStopTime='00:00:00.000' m_vtmTime='0'</period>
+        </schedule>
+        <wait delay="10" label="Wait to force instance reload in memory" name="wait"
+              x="568" y="48">
+          <transitions>
+            <transition name="transition" target="scheduleMonday"/>
+          </transitions>
+        </wait>
+        <jstest label="Test" name="jstest" x="184" y="96">
+          <initScript>var currDate = new Date();
+var hasToWait = false;
+logInfo( "currDate.getDay() = " + currDate.getDay() );
+//If now is Sunday (0) or Saturday (6)
+if( currDate.getDay() == 0 || currDate.getDay() == 6 )
+ hasToWait = true;
+ 
+vars.hasToWait = hasToWait;</initScript>
+          <transitions>
+            <test label="Has to Wait Monday ?" name="transition1" target="js">
+              <condition>vars.hasToWait</condition>
+            </test>
+            <default label="Go now" name="default" target="fork"/>
+          </transitions>
+        </jstest>
+        <js label="Change tmIterDate for Monday Schedule" name="js" x="392" y="48">
+          <transitions>
+            <done name="done" target="wait"/>
+            <error name="error"/>
+          </transitions>
+          <script>var cutrrentDate = formatDate(new Date(), '%4Y-%2M-%2D')
+var currentTime = new Date();
+currentTime.setMinutes( currentTime.getMinutes() + 5 );
+currentTime = formatDate(currentTime, '%2H:%2N:%2S.000') //00:00:00.000
+var schedulers = instance.activities.schedule;
+for each(var currSchedule in schedulers)
+  if( currSchedule.name == "scheduleMonday")
+    {
+    currSchedule.period = currSchedule.period.toString().replace( /m_tmIterDate='[^']*'/gi, "m_tmIterDate='"+cutrrentDate+"'" )
+      .replace( /m_tmIterTime='[^']*'/gi, "m_tmIterTime='"+currentTime+"'" );
+    }</script>
+        </js>
+      </activities>
+      <variables/>
+      <scenario _operation="none" internalName="notifySupervisor"/>
+      <desc>Schedule with some day has to wait for next monday</desc>
+      <folder _operation="none" name="nmsTechnicalWorkflow"/>
+    </workflow>
+  </entities>
+</package>
