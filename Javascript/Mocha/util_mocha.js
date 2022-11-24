@@ -6463,7 +6463,16 @@ var clearInterval = global.clearInterval;
 
 var process = {};
 process.exit = function(status){};
-process.stdout = {};
+process.stdout = {
+    out : [],
+    write : function( str ){
+      //logInfo('process.stdout.bind called with ' + str );
+      process.stdout.out.push(str);
+    },
+    toString : function(){
+      return process.stdout.out.join('\n');
+    }
+ };
 
 var uncaughtExceptionHandlers = [];
 
