@@ -1,0 +1,75 @@
+<package author="Cédric Rey (crey)" buildDate="2022-12-14 17:35:38.256Z" buildNumber="9349"
+         buildVersion="6.7">
+  <entities schema="xtk:workflow">
+    <workflow form="xtk:workflow" internalName="WKF5673433" label="Poc optimised Loop"
+              modelName="newWorkflow" scenario-cs="Notification of the workflow supervisor"
+              schema="nms:recipient" simulation="false">
+      <activities>
+        <start label="Début" name="start" x="48" y="48">
+          <initScript>vars.eventName = "Event 1";</initScript>
+          <transitions>
+            <initial name="initial" target="jsx"/>
+          </transitions>
+        </start>
+        <start label="Début" name="start2" x="48" y="200">
+          <initScript>vars.eventName = "Event 2";</initScript>
+          <transitions>
+            <initial name="initial" target="wait"/>
+          </transitions>
+        </start>
+        <end label="Fin" name="end" x="632" y="88"/>
+        <wait delay="2" label="Attente" name="wait" x="184" y="144">
+          <transitions>
+            <transition name="transition" target="jsx"/>
+          </transitions>
+        </wait>
+        <js label="Code JavaScript" name="js" x="464" y="88">
+          <transitions>
+            <done name="done" target="end"/>
+            <error name="error"/>
+          </transitions>
+          <script>logInfo("OK I'm done :" + vars.eventName );</script>
+        </js>
+        <jsx label="Code JavaScript avancé" name="jsx" x="312" y="88">
+          <transitions>
+            <transition label="Ok" name="ok" target="js"/>
+            <error name="error"/>
+          </transitions>
+          <call>task.vars.loop = 0;
+task.vars.maxIteration = 3;
+
+function displayLoop(){
+  logInfo('loop is ' + task.vars.loop );
+}
+displayLoop();
+task.vars.loop++;
+return 0;</call>
+          <recall>var iNextStartDelay = 2000;
+
+function displayLoop(){
+  logInfo('loop is ' + task.vars.loop );
+} 
+displayLoop();
+
+if( task.vars.loop &lt; task.vars.maxIteration ){
+  task.vars.loop++
+
+  var tmNextStart = getCurrentDate()
+  tmNextStart.setTime(tmNextStart.getTime() + iNextStartDelay)
+  task.setNextProcessingDate(tmNextStart)
+  return 0;
+}
+else 
+  {
+  task.postEvent(task.transitionByName("ok"));
+  task.setCompleted()
+  return 0;
+  }</recall>
+        </jsx>
+      </activities>
+      <variables/>
+      <desc>Modèle de départ vide pour créer un nouveau workflow</desc>
+      <folder _operation="none" name="Folder2780"/>
+    </workflow>
+  </entities>
+</package>
