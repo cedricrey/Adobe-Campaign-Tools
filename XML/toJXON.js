@@ -5,6 +5,9 @@ DOM : https://experienceleague.adobe.com/developer/campaign-api/api/c-DOMDocumen
 */
 
 function toJXON(domDocument) {
+    //Force entry XML to be a DOMDocument
+    if( typeof domDocument == "xml" )
+        domDocument = DOMDocument.fromXMLString( '<?xml version="1.0" encoding="ISO-8859-1"?>' + domDocument.toXMLString() );
     function transformElement( domDocument ){
       var obj = {};
       var attrs = domDocument.attributes;
