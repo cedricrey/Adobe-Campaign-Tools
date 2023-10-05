@@ -1,0 +1,29 @@
+<queryFilter default="0" hasForm="1" img="nms:rcpgroup.png"
+             label="Une liste de personne" main="1" name="INTO_NMS_GROUP" schema="cus:myData"
+             shared="1" sqlTable="" startPath="/" xtkschema="xtk:queryFilter">
+  <where displayFilter="identifiant data égal à @id (temp:group:$primarykey">
+    <condition compositeKey="" dependkey="" enabledIf="$(/tmp/list/group/@type)=1"
+               expr="@id = [temp:group:$primarykey(/tmp/list/group/@id):@id]"/>
+  </where>
+  <form>
+    <container label="Liste" type="frame">
+      <input dblClickAction="wizFinish|wizNext" exprOutCS="'Liste \''+[/tmp/list/group/@_cs]+'\''"
+             extraColumns="@type" folderFilterChoice="@model = 'nmsGroup'" lineCount="10"
+             monoSelection="true" newEntityFormChoice="true" schema="nms:group" type="linkListChoice"
+             xpath="/tmp/list" xpathOut="/tmp/list" xpathOutCS="/tmp/@_cs">
+        <input expr="@label"/>
+        <sysFilter>
+          <condition expr="@schema='cus:myData'"/>
+        </sysFilter>
+      </input>
+    </container>
+    <leave>
+      <check expr="[/tmp/list/group/@id] != ''">
+        <error>You must choose a group</error>
+      </check>
+    </leave>
+  </form>
+  <desc><![CDATA[]]></desc>
+  <env id="0" inputSchema=""/>
+  <createdBy _cs="Cedric REY" type="0"/>
+</queryFilter>
