@@ -1,0 +1,34 @@
+<queryFilter default="0" hasForm="1" img="nms:miniatures/mini-exclusion.png"
+             label="Exclude a list" main="1" name="EXCLUDE_FROM_GROUP" schema="cus:myData"
+             shared="1" sqlTable="" startPath="/" xtkschema="xtk:queryFilter">
+  <where displayFilter="id is not into [SQLDATA[(SELECT iId FROM grp$int64(/tmp/list/group/@id))]]"
+         filteringSchema="cus:myData">
+    <condition enabledIf="$(/tmp/list/group/@type)=1" expr="@id NOT IN ([SQLDATA[(SELECT iId FROM grp$int64(/tmp/list/group/@id))]])"/>
+  </where>
+  <form>
+    <container label="Liste" type="frame">
+      <input dblClickAction="wizFinish|wizNext" exprOutCS="'Exclusion of the list \''+[/tmp/list/group/@_cs]+'\''"
+             extraColumns="@type" folderFilterChoice="@model = 'nmsGroup'" lineCount="10"
+             monoSelection="true" newEntityFormChoice="true" schema="nms:group" type="linkListChoice"
+             xpath="/tmp/list" xpathOut="/tmp/list" xpathOutCS="/tmp/@_cs">
+        <input expr="@label"/>
+        <sysFilter>
+          <condition expr="@schema='cus:myData'"/>
+        </sysFilter>
+
+      </input>
+    </container>
+    <leave>
+      <if expr="[/tmp/list/group/@id] &lt; 0 ">
+        <set expr="'' + ([/tmp/list/group/@id] + 4294967296)" xpath="/tmp/list/group/@id"/>
+      </if>
+
+      <check expr="[/tmp/list/group/@id] != ''">
+        <error>You must choose a list.</error>
+      </check>
+    </leave>
+  </form>
+  <desc><![CDATA[]]></desc>
+  <env id="0" inputSchema=""/>
+  <createdBy _cs="Cedric REY" type="0"/>
+</queryFilter>
