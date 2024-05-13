@@ -13,6 +13,7 @@ var TranslatingTool = function( options ){
   this.langIndex = [];
   this.codeDelimiters = options.codeDelimiters || null;  
   this.subjectField = options.subjectField || null;  
+  this.directTranslate = options.directTranslate || null;  
   this.parseTranslateFile();  
 }
 /*
@@ -100,13 +101,17 @@ TranslatingTool.prototype.parseTranslateFile = function(){
     logInfo("TranslatingTool.parseTranslateFile finished");
 }
 
+//utilisé pour déspécialiser les caractère spéciaux RegEx
+TranslatingTool.matchOperatorsRe = /[|\\{}()[\]^$+*?.]/g;
 
 TranslatingTool.prototype.generateHTML = function ( lang, parameters ){
   var options = parameters || {};
   var subjectField = parameters.subjectField || this.subjectField;
-  var datas = this.translateDatas[ lang ],
+  var datas = this.translateDatas[ lang ];
+  if( this.directTranslate )
+    var dtDatas = this.translateDatas[ this.directTranslate ];
 
-  html = "";
+  var html = "";
   if( datas && this.templateFile != "" ){
       //Lecture du template
      var templateFile = new File( this.templateFile );
@@ -127,6 +132,15 @@ TranslatingTool.prototype.generateHTML = function ( lang, parameters ){
             var replacement = datas[ k ] == "1" ? "$1" : "";
             var regIF = new RegExp( "{{" + ifVariable + "}}(([^{]*)((?!{{\/" + ifVariable + "}}){[^{]*)*){{\/"+ ifVariable +"}}" , "g" );
             html = html.replace( regIF , replacement );
+          }
+        else if( this.directTranslate )
+          {
+            var content = datas[ k ];
+            content = this.replaceContentCode( content );
+            content = TranslatingTool.encodeHTMLEntities( content );
+            //logInfo('k is ' + k + " => " + dtDatas[ k ] );
+            var reg = new RegExp( dtDatas[ k ].replace(TranslatingTool.matchOperatorsRe, '\\$&') , "g" );
+            html = html.replace( reg , content );          
           }
         else
           {
