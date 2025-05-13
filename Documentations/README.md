@@ -15,3 +15,9 @@ $memo( X ) : I guess it will allows very long string (like memo) ?
 $date( X )  : force the varibale to be a datetime
 $string( X ) ...
 ```
+
+
+### Add Special code (ex : emoji) to subject
+You can add UTF-8 special code to an email subject by encode with base64 method the text and surround by special code :
+=?UTF-8?b? and =?=
+Ex : =?UTF-8?b?SGVsbG8gdGhlcmUgISDwn5KM=?=
