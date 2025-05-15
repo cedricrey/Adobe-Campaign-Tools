@@ -1,0 +1,268 @@
+<workflow form="xtk:workflow" internalName="Mid2Mkt_DeliveryStats" label="Récup des stats du mid"
+              modelName="newWorkflow" scenario-cs="Notification du responsable d'un workflow (notifySupervisor)"
+              schema="nms:recipient" simulation="false">
+      <activities>
+        <end label="Fin" name="end" x="640" y="224"/>
+        <schedule label="Planificateur" name="schedule" x="104" y="224">
+          <transitions>
+            <transition name="transition" target="jsDeliveryStatsMid"/>
+          </transitions>
+          <period>m_abDay='7' m_abDay[0]='0' m_abDay[1]='0' m_abDay[2]='0' m_abDay[3]='0' m_abDay[4]='0' m_abDay[5]='0' m_abDay[6]='0' m_abMonth='12' m_abMonth[0]='0' m_abMonth[10]='0' m_abMonth[11]='0' m_abMonth[1]='0' m_abMonth[2]='0' m_abMonth[3]='0' m_abMonth[4]='0' m_abMonth[5]='0' m_abMonth[6]='0' m_abMonth[7]='0' m_abMonth[8]='0' m_abMonth[9]='0' m_iDayMode='1' m_iMaxIter='0' m_iMonthDay='0' m_iMonthMode='0' m_iPosDay='0' m_iSpanDay='0' m_iSpanWeek='0' m_iTimeMode='3' m_iValidMode='1' m_iWeekDay='0' m_iWeekMode='0' m_tmFixedDay='' m_tmFixedTime='00:00:00.000' m_tmIterDate='' m_tmIterTime='00:00:00.000' m_tmOrgDate='' m_tmSpanTime='10mn' m_tmStartDate='0001-11-24' m_tmStartTime='00:03:00.000' m_tmStopDate='0001-11-24' m_tmStopTime='' m_vtmTime='0'</period>
+        </schedule>
+        <js label="Récupération des deliverystats depuis le dernier traitement pour chaque Compte externe de type email, en midsourcing et actif"
+            name="jsDeliveryStatsMid" x="288" y="224">
+          <transitions>
+            <done name="done" target="end"/>
+            <error enabled="true" name="error" target="alert"/>
+          </transitions>
+          <script>var extAccountName = "v6EmailMid";
+
+var Util = (function (){  
+    return {
+      getExtAccount: function(extAccountName) {
+  
+        var qry =
+          &lt;queryDef operation="getIfExists" schema="nms:extAccount"&gt;
+            &lt;select&gt;
+              &lt;node expr="@id" /&gt;
+              &lt;node expr="@label"/&gt;
+              &lt;node expr="@name"/&gt;
+              &lt;node expr="@server" /&gt;
+              &lt;node expr="@account" /&gt;
+              &lt;node expr="@password" /&gt;
+              &lt;node expr="@active"/&gt;
+            &lt;/select&gt;
+            &lt;where&gt;
+              &lt;condition expr={"@name='" + extAccountName + "'"} /&gt;
+            &lt;/where&gt;
+          &lt;/queryDef&gt;;
+           
+        return xtk.queryDef.create(qry).ExecuteQuery();
+      },
+      logonRemote : function(cnx, login, cryptedPassword) {
+      var sessionService = new SoapService(cnx, "xtk:session");
+      var logon = null;
+      try {
+        sessionService.addMethod("Logon", "xtk:session#Logon",
+          ["token", "string", "login", "string", "password", "string", "parameters", "NLElement"],
+          ["sessionToken", "string", "sessionInfo", "NLElement", "securityToken", "string"]);
+        logon = sessionService.Logon("", login, decryptString(cryptedPassword), &lt;parameters/&gt;);
+      }
+      catch( e ) {
+        logError(e);
+      }
+      finally {
+        sessionService.dispose();
+      }
+
+      if( logon &amp;&amp; logon.length == 3 )
+        return {"sessionToken" : logon[0],
+                "sessionInfo"  : logon[1],
+                "securityToken": logon[2]};
+
+      return null;
+      }, 
+      getDeliveryExtAccount: function(extAccountId) {  
+        var qry =
+          &lt;queryDef operation="getIfExists" schema="nms:extAccount"&gt;
+            &lt;select&gt;
+              &lt;node expr="@id" /&gt;
+              &lt;node expr="@label"/&gt;
+              &lt;node expr="@name"/&gt;
+              &lt;node expr="@server" /&gt;
+              &lt;node expr="@account" /&gt;
+              &lt;node expr="@password" /&gt;
+              &lt;node expr="@active"/&gt;
+            &lt;/select&gt;
+            &lt;where&gt;
+              &lt;condition expr={"@id='" + extAccountId + "'"} /&gt;
+            &lt;/where&gt;
+          &lt;/queryDef&gt;;
+           
+        return xtk.queryDef.create(qry).ExecuteQuery();
+      },
+      logonRemote : function(cnx, login, cryptedPassword) {
+      var sessionService = new SoapService(cnx, "xtk:session");
+      var logon = null;
+      try {
+        sessionService.addMethod("Logon", "xtk:session#Logon",
+          ["token", "string", "login", "string", "password", "string", "parameters", "NLElement"],
+          ["sessionToken", "string", "sessionInfo", "NLElement", "securityToken", "string"]);
+        logon = sessionService.Logon("", login, decryptString(cryptedPassword), &lt;parameters/&gt;);
+      }
+      catch( e ) {
+        logError(e);
+      }
+      finally {
+        sessionService.dispose();
+      }
+
+      if( logon &amp;&amp; logon.length == 3 )
+        return {"sessionToken" : logon[0],
+                "sessionInfo"  : logon[1],
+                "securityToken": logon[2]};
+
+      return null;
+      }, 
+      getDeliveryStat: function(cond, remoteInstanceUrl, login, encryptedPassword) {
+        try {
+          var cnx = new HttpSoapConnection(remoteInstanceUrl + '/nl/jsp/soaprouter.jsp', 'utf-8', 0);
+          var soapSrv = new SoapService(cnx, 'xtk:queryDef');
+          soapSrv.addMethod('ExecuteQuery', 'xtk:queryDef#ExecuteQuery',
+                            ['sessiontoken', 'string','entity', 'NLElement'],
+                            ['pdomOutput', 'NLElement'])
+          var tokens = Util.logonRemote(cnx, login, encryptedPassword);
+          cnx.addTokens(tokens["sessionToken"], tokens["securityToken"]);
+        
+          var queryDef = 
+            &lt;queryDef operation="select" schema="nms:deliveryStat"&gt;
+              &lt;select&gt;
+                &lt;node expr="[@delivery-id]" alias="@midRemoteId"/&gt;
+                &lt;node expr="@date"/&gt;
+                &lt;node expr="@volume"/&gt;
+                &lt;node expr="@firstSuccess"/&gt;
+                &lt;node expr="@firstError"/&gt;
+                &lt;node expr="@retriesSuccess"/&gt;
+                &lt;node expr="@retriesError"/&gt;
+                &lt;node expr="@verifyMode"/&gt;
+              &lt;/select&gt;
+              &lt;where&gt;
+                { cond }
+                &lt;condition expr="[@delivery-id] != 0"/&gt;
+              &lt;/where&gt;
+            &lt;/queryDef&gt;
+
+         var res = soapSrv.ExecuteQuery("", queryDef)
+        }
+        catch( e ) {
+          logError(e);
+        }
+        finally {
+          if( soapSrv ) soapSrv.dispose();
+          if( cnx ) cnx.dispose();
+        }
+        return res;
+      },
+      deliveriesByRemoteId : {},
+      getDeliveryIdByRemoteId : function( remoteId ){
+        if(Util.deliveriesByRemoteId[remoteId])
+          return Util.deliveriesByRemoteId[remoteId];
+        if( remoteId == '' )
+          return 0;
+          
+        var queryDef = xtk.queryDef.create(&lt;queryDef operation="select" schema="nms:delivery"&gt;
+                    &lt;select&gt;
+                      &lt;node expr="@id"/&gt;
+                    &lt;/select&gt;
+                    &lt;where&gt;
+                      &lt;condition expr={"[properties/@midRemoteId] = " + remoteId}/&gt;
+                    &lt;/where&gt;
+                  &lt;/queryDef&gt;);
+        var res = queryDef.ExecuteQuery();
+        //Par defaut 0 : pas trouvé
+        var realId = 0;
+        //Si trouvé, on prend celui-ci
+        if( res.delivery.length() &gt; 0)
+          var realId = res.delivery[0].@id.toString();
+        Util.deliveriesByRemoteId[remoteId] = realId;
+        return realId;
+      },
+      getAllActiveRoutingAccount : function( ){
+        var qry =
+          &lt;queryDef operation="select" schema="nms:extAccount"&gt;
+            &lt;select&gt;
+              &lt;node expr="@id" /&gt;
+              &lt;node expr="@label"/&gt;
+              &lt;node expr="@name"/&gt;
+              &lt;node expr="@server" /&gt;
+              &lt;node expr="@account" /&gt;
+              &lt;node expr="@password" /&gt;
+              &lt;node expr="@active"/&gt;
+            &lt;/select&gt;
+            &lt;where&gt;
+              &lt;condition expr="@type = 3" /&gt;
+              &lt;condition expr="@active = 1" /&gt;
+              &lt;condition expr="@messageType = 0" /&gt;              
+            &lt;/where&gt;
+          &lt;/queryDef&gt;;
+           
+        var res = xtk.queryDef.create(qry).ExecuteQuery().extAccount;
+        var array = [];
+        for each(var account in res)
+          array.push( account );
+        return array;
+      } 
+    };
+  }());
+  
+
+
+periodStart = 24;
+periodEnd = 1;
+//
+//var cond = &lt;condition expr={ "@date &gt;= subHours(getDate(), " + periodStart + ") and @date &lt;= subHours(getDate(), " + periodEnd + ") "}/&gt;;
+//@date &amp;gt;= #2018-12-24 11:50:00.000Z#
+
+
+try{    
+    var currentProcessingDate = new Date();
+    var lastProcessingDate = getOption('NmsDeliveryStat_LastMidDate');
+    lastProcessingDate = new Date(lastProcessingDate);
+    lastProcessingDate.setMinutes( lastProcessingDate.getMinutes() - 30 );
+    var cond = &lt;condition expr={ "@date &gt;= #" + formatDate(lastProcessingDate, "%4Y-%2M-%2D %02H:%02N:%02S.000Z", "GMT") + "#"}/&gt;;
+    
+    //var extAccount = Util.getExtAccount(extAccountName)
+    
+    var allAccount = Util.getAllActiveRoutingAccount();
+    //var extAccount = Util.getDeliveryExtAccount(ctx.delivery.deliveryProviderId)
+    for each( var extAccount in allAccount)
+    { 
+      if( extAccount.@server.toString() == "")
+        continue;
+      
+      logInfo('Récupération pour le compte externe : ' + extAccount.@label + " ("+ extAccount.@name +")" );
+      var res = Util.getDeliveryStat(cond, extAccount.@server, extAccount.@account, extAccount.@password);
+      for each( var deliveryStat in res.deliveryStat )
+      {
+        //Récuperation du vrai ID de la diffusion (car on travaille avec des ID distant du mid)
+        var deliveryId = Util.getDeliveryIdByRemoteId( deliveryStat.@midRemoteId.toString() );
+        //ID à 0 : pas trouvé. Peut arriver dans le cas d'un mid partagé
+        if( deliveryId == 0 )
+          continue;
+        deliveryStat.@["delivery-id"] = deliveryId;
+        deliveryStat.@xtkschema = "nms:deliveryStat";
+        xtk.session.Write( deliveryStat );
+      }
+    }
+}
+catch( e ){
+  vars.error = e;
+  throw( e );
+}
+
+setOption('NmsDeliveryStat_LastMidDate', currentProcessingDate);</script>
+        </js>
+        <alert assignee-cs="" label="Alerte" name="alert" scenario-cs="Send an alert to operators assigned to a workflow task (alertAssignee)"
+               title="[NEO-ALERTE] deliveryStats mid-sourcing - error"
+               x="528" y="384">
+          <transitions>
+            <done name="done" target="end"/>
+            <error name="error"/>
+          </transitions>
+          <message>&lt;!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"&gt;
+&lt;HTML&gt;&lt;HEAD&gt;
+&lt;META content="text/html; charset=Windows-1252" 
+http-equiv="Content-Type"&gt;
+&lt;/HEAD&gt;
+&lt;BODY&gt;
+PROBLEM WITH DELIVERY STATS MID SOURCING WORKFLOW
+&lt;/BODY&gt;&lt;/HTML&gt;</message>
+          <assignee _operation="none" name="" type="1"/>
+          <scenario _operation="none" internalName="alertAssignee"/>
+        </alert>
+      </activities>
+      <variables/>
+      <scenario _operation="none" internalName="notifySupervisor"/>
+      <desc></desc>
+      <folder _operation="none" name="nmsTechnicalWorkflow"/>
+    </workflow>
