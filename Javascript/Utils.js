@@ -37,3 +37,15 @@ function findClosestFolderType( fullName, model ){
     }//while
   return folder;
 }
+
+//Special for French, but can match to all : make the string in Camel case for french place
+function toPlaceCase(inStr) {  var str = inStr.replace(/\w[^- ]*/g, function(tStr) {
+      var linkWords = new Array("d'",'de','du','la','le','les',"l'",'lès','et','en','sous','sur');
+      if(linkWords.indexOf(tStr.toLowerCase()) == -1 ){return tStr.charAt(0).toUpperCase() + tStr.substr(1).toLowerCase();} 
+      else return tStr.toLowerCase();
+    });  
+    return str.charAt(0).toUpperCase() + str.substr(1);
+}
+String.prototype.toPlaceCase = function(){
+  return toPlaceCase( this );
+}
